@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bot, Bell } from 'lucide-react';
+import { Bot, Bell, User, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import PWAStatusBar from './PWAStatusBar';
 import BottomNavigation from './BottomNavigation';
 import HomeTab from './tabs/HomeTab';
@@ -9,6 +10,8 @@ import AnalyticsTab from './tabs/AnalyticsTab';
 import TemplatesTab from './tabs/TemplatesTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 const LinkedInPostAdmin = () => {
   const [postContent, setPostContent] = useState('');
@@ -25,6 +28,7 @@ const LinkedInPostAdmin = () => {
   const [currentStep, setCurrentStep] = useState('create');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { toast } = useToast();
+  const { user, loading, signOut, isAuthenticated } = useAuth();
 
   // PWA Status Bar e Network Detection
   useEffect(() => {
@@ -258,6 +262,29 @@ const LinkedInPostAdmin = () => {
         
         <div className="flex items-center space-x-3">
           <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-success' : 'bg-destructive'}`}></div>
+          
+          {loading ? (
+            <div className="w-6 h-6 animate-pulse bg-muted rounded-full" />
+          ) : isAuthenticated ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-muted-foreground">{user?.email}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="h-6 w-6"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Link to="/auth">
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <User className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
+          
           <Bell className="w-6 h-6 text-muted-foreground" />
         </div>
       </header>
