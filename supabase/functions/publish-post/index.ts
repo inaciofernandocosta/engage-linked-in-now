@@ -74,35 +74,38 @@ serve(async (req) => {
       );
     }
 
-    // 4. Obter usuário
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    console.log('Verificando usuário...');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // 4. Obter usuário do JWT token
+    console.log('Decodificando JWT token...');
+    
+    // Extrair o token do header Authorization
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token extraído:', token ? 'presente' : 'ausente');
+    
+    // Criar client administrativo para decodificar o JWT
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Verificar o token JWT
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError) {
-      console.error('ERRO getUserError:', userError);
+      console.error('ERRO JWT verificação:', userError);
       return new Response(
-        JSON.stringify({ error: 'Falha na autenticação', details: userError.message }),
+        JSON.stringify({ error: 'Token inválido', details: userError.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!user) {
-      console.error('ERRO: User null');
+      console.error('ERRO: User não encontrado no token');
       return new Response(
-        JSON.stringify({ error: 'Usuário não encontrado' }),
+        JSON.stringify({ error: 'Usuário não encontrado no token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Usuário OK:', user.id);
+    console.log('Usuário autenticado:', user.id);
 
-    // 5. Criar admin client e testar conexão
-    console.log('Criando admin client...');
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    // 5. Testar conexão com o banco
     
     // Teste rápido de conexão
     console.log('Testando conexão admin...');
