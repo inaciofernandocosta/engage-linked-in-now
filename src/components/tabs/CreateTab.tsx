@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Bot, Upload, X, Send, Sparkles, Zap, Check } from 'lucide-react';
+import { Bot, Upload, X, Send, Sparkles, Zap, Check, PenTool } from 'lucide-react';
 import LinkedInPreview from '../LinkedInPreview';
 
 interface CreateTabProps {
@@ -20,8 +20,10 @@ interface CreateTabProps {
     objective: string;
   }>>;
   isGenerating: boolean;
+  isCorrecting: boolean;
   currentStep: string;
   generateAIContent: () => void;
+  correctContent: () => void;
   sendToWebhook: () => void;
   approvePost: () => void;
   setCurrentStep: (step: string) => void;
@@ -37,8 +39,10 @@ const CreateTab = ({
   aiParams,
   setAiParams,
   isGenerating,
+  isCorrecting,
   currentStep,
   generateAIContent,
+  correctContent,
   sendToWebhook,
   approvePost,
   setCurrentStep,
@@ -294,6 +298,32 @@ const CreateTab = ({
           )}
         </div>
       </div>
+
+      {/* Correção por IA */}
+      {postContent && (
+        <div className="bg-card rounded-xl p-4 shadow-sm border">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-card-foreground">Correção IA</h3>
+          </div>
+          <button 
+            onClick={correctContent}
+            disabled={isCorrecting}
+            className="w-full bg-secondary text-secondary-foreground py-3 px-4 rounded-xl font-medium hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          >
+            {isCorrecting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-secondary-foreground border-t-transparent rounded-full animate-spin"></div>
+                <span>Corrigindo...</span>
+              </>
+            ) : (
+              <>
+                <PenTool className="w-4 h-4" />
+                <span>Corrigir Conteúdo</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Preview */}
       {postContent && (

@@ -18,6 +18,7 @@ const LinkedInPostAdmin = () => {
     objective: 'engagement'
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCorrecting, setIsCorrecting] = useState(false);
   const [currentStep, setCurrentStep] = useState('create');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -60,6 +61,24 @@ Qual dessas dicas ressoa mais com sua experiência? Compartilhe nos comentários
     setIsGenerating(false);
   };
 
+  const correctContent = async () => {
+    if (!postContent.trim()) return;
+    
+    setIsCorrecting(true);
+    
+    // Simula a correção por IA
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Exemplo de correção aplicada ao conteúdo
+    const correctedContent = postContent
+      .replace(/\s+/g, ' ') // Remove espaços extras
+      .replace(/([.!?])\s*([a-z])/g, '$1 $2') // Corrige espaçamento após pontuação
+      .trim();
+    
+    setPostContent(correctedContent);
+    setIsCorrecting(false);
+  };
+
   const sendToWebhook = async () => {
     setCurrentStep('webhook');
     
@@ -93,8 +112,10 @@ Qual dessas dicas ressoa mais com sua experiência? Compartilhe nos comentários
             aiParams={aiParams}
             setAiParams={setAiParams}
             isGenerating={isGenerating}
+            isCorrecting={isCorrecting}
             currentStep={currentStep}
             generateAIContent={generateAIContent}
+            correctContent={correctContent}
             sendToWebhook={sendToWebhook}
             approvePost={approvePost}
             setCurrentStep={setCurrentStep}
