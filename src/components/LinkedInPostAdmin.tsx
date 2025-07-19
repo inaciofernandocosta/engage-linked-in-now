@@ -191,11 +191,51 @@ const LinkedInPostAdmin = () => {
   };
 
   const sendToWebhook = async () => {
+    if (!postContent.trim()) {
+      toast({
+        title: "Erro",
+        description: "Conteúdo do post é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCurrentStep('webhook');
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setCurrentStep('approval');
+    try {
+      const imageUrl = images.length > 0 ? images[0].url : null;
+      const webhookUrl = "https://eo6y8yafmyxp7kj.m.pipedream.net";
+
+      const { data, error } = await supabase.functions.invoke('publish-post', {
+        body: {
+          content: postContent,
+          imageUrl: imageUrl,
+          webhookUrl: webhookUrl
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.success) {
+        toast({
+          title: "Post Publicado!",
+          description: "Post salvo no banco e webhook notificado com sucesso",
+        });
+        setCurrentStep('approval');
+      } else {
+        throw new Error(data.error || 'Erro ao publicar post');
+      }
+    } catch (error) {
+      console.error('Erro ao publicar post:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao publicar post",
+        variant: "destructive",
+      });
+      setCurrentStep('create');
+    }
   };
 
   const approvePost = async () => {

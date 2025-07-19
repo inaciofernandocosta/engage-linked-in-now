@@ -571,12 +571,30 @@ const CreateTab = ({
       {/* Botões de Ação */}
       <div className="flex space-x-3">
         <button 
+          onClick={correctContent}
+          disabled={isCorrecting || !postContent.trim()}
+          className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
+        >
+          {isCorrecting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Corrigindo...</span>
+            </>
+          ) : (
+            <>
+              <PenTool className="w-4 h-4" />
+              <span>Corrigir Conteúdo</span>
+            </>
+          )}
+        </button>
+        
+        <button 
           onClick={sendToWebhook}
           disabled={!postContent.trim()}
-          className="flex-1 bg-primary text-primary-foreground py-3 px-4 rounded-xl font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          className="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
         >
           <Send className="w-4 h-4" />
-          <span>Enviar</span>
+          <span>Publicar</span>
         </button>
       </div>
     </div>

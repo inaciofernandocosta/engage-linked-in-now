@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_storage_path: string | null
+          image_url: string | null
+          published_at: string
+          updated_at: string
+          user_id: string
+          webhook_url: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_storage_path?: string | null
+          image_url?: string | null
+          published_at?: string
+          updated_at?: string
+          user_id: string
+          webhook_url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_storage_path?: string | null
+          image_url?: string | null
+          published_at?: string
+          updated_at?: string
+          user_id?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
