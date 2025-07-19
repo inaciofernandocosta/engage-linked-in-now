@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Bot, Bell } from 'lucide-react';
-import PWAStatusBar from './PWAStatusBar';
 import BottomNavigation from './BottomNavigation';
 import HomeTab from './tabs/HomeTab';
 import CreateTab from './tabs/CreateTab';
@@ -244,9 +243,6 @@ const LinkedInPostAdmin = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-sm mx-auto relative overflow-hidden shadow-2xl">
-      {/* Status Bar PWA */}
-      <PWAStatusBar isOnline={isOnline} />
-
       {/* Conteúdo Principal */}
       <main className="flex-1 overflow-y-auto pb-20 pt-4">
         {renderTabContent()}
