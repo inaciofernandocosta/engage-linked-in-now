@@ -40,29 +40,80 @@ const LinkedInPostAdmin = () => {
     };
   }, []);
 
-  const generateAIContent = async () => {
+  const generateAIContent = async (instructions: string) => {
+    if (!instructions.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite suas instruções ou rascunho para gerar o conteúdo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isOnline) {
+      toast({
+        title: "Erro de conectividade",
+        description: "Você precisa estar online para usar a geração por IA",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsGenerating(true);
     
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const sampleContent = `🚀 Como transformar sua carreira em tecnologia em 2025
+    try {
+      console.log('Iniciando geração de conteúdo...');
+      console.log('Instruções originais:', instructions.substring(0, 100) + '...');
+      console.log('Parâmetros AI:', aiParams);
+      console.log('Usar emojis:', useEmojis);
+      
+      const { data, error } = await supabase.functions.invoke('generate-content', {
+        body: { 
+          content: instructions,
+          useEmojis: useEmojis,
+          size: aiParams.size,
+          tone: aiParams.tone,
+          objective: aiParams.objective
+        }
+      });
 
-Nos últimos 5 anos trabalhando com desenvolvimento, aprendi que o mercado tech não para de evoluir. E quem não se adapta, fica para trás.
+      console.log('Resposta da função:', { data, error });
 
-✅ 3 dicas que mudaram minha trajetória:
+      if (error) {
+        console.error('Erro da função Supabase:', error);
+        toast({
+          title: "Erro na geração",
+          description: error.message || "Erro ao gerar conteúdo com IA",
+          variant: "destructive",
+        });
+        return;
+      }
 
-1️⃣ Foque em fundamentos: Algoritmos e estruturas de dados nunca saem de moda
-2️⃣ Pratique projetos reais: GitHub com código de qualidade vale mais que 10 certificados
-3️⃣ Network estratégico: Conecte-se com pessoas que já estão onde você quer chegar
-
-💡 O diferencial não está apenas no que você sabe, mas em como aplica esse conhecimento para resolver problemas reais.
-
-Qual dessas dicas ressoa mais com sua experiência? Compartilhe nos comentários! 👇
-
-#DesenvolvimentoSoftware #CarreiraTech #Programação #LinkedIn`;
-
-    setPostContent(sampleContent);
-    setIsGenerating(false);
+      if (data?.generatedContent) {
+        console.log('Conteúdo gerado com sucesso, length:', data.generatedContent.length);
+        setPostContent(data.generatedContent);
+        toast({
+          title: "Sucesso!",
+          description: "Conteúdo gerado com IA aplicado!",
+        });
+      } else {
+        console.error('Nenhum conteúdo gerado recebido');
+        toast({
+          title: "Erro",
+          description: "Nenhum conteúdo foi gerado",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao gerar conteúdo:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao gerar conteúdo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const correctContent = async () => {

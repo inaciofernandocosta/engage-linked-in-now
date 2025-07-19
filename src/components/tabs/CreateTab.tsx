@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Bot, Upload, X, Send, Sparkles, Zap, Check, PenTool } from 'lucide-react';
 import LinkedInPreview from '../LinkedInPreview';
 
@@ -22,7 +22,7 @@ interface CreateTabProps {
   isGenerating: boolean;
   isCorrecting: boolean;
   currentStep: string;
-  generateAIContent: () => void;
+  generateAIContent: (instructions: string) => void;
   correctContent: () => void;
   sendToWebhook: () => void;
   approvePost: () => void;
@@ -50,6 +50,8 @@ const CreateTab = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const characterLimit = 3000;
   const characterCount = postContent.length;
+  const [instructions, setInstructions] = useState("");
+  const instructionCount = instructions.length;
 
   const aiSizeOptions = [
     { value: 'short', label: 'Curto', desc: '300-500' },
@@ -137,6 +139,28 @@ const CreateTab = ({
 
   return (
     <div className="p-4 space-y-4">
+      {/* Instruções para IA */}
+      <div className="bg-card rounded-xl p-4 shadow-sm border">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-card-foreground">Instruções ou Rascunho</h3>
+          <span className={`text-xs ${instructionCount > 500 ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {instructionCount}/500
+          </span>
+        </div>
+        
+        <textarea
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          maxLength={500}
+          placeholder="Ex: Participei nesta sexta feira de uma formação na Statse de conselheiro e foi um evento muito bacana que aprendi muito sobre governança..."
+          className="w-full h-24 p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
+        />
+        
+        <p className="text-xs text-muted-foreground mt-2">
+          Digite suas ideias ou rascunho que a IA irá transformar em um post profissional
+        </p>
+      </div>
+
       {/* Geração de IA */}
       <div className="bg-card rounded-xl p-4 shadow-sm border">
         <div className="flex items-center space-x-2 mb-4">
@@ -208,8 +232,8 @@ const CreateTab = ({
           </div>
 
           <button 
-            onClick={generateAIContent}
-            disabled={isGenerating}
+            onClick={() => generateAIContent(instructions)}
+            disabled={isGenerating || !instructions.trim()}
             className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
           >
             {isGenerating ? (
@@ -251,7 +275,7 @@ const CreateTab = ({
           value={postContent}
           onChange={(e) => setPostContent(e.target.value)}
           maxLength={characterLimit}
-          placeholder="Digite seu post aqui ou use a IA para gerar conteúdo..."
+          placeholder="O conteúdo gerado pela IA aparecerá aqui. Você pode editá-lo antes de usar o botão 'Corrigir Conteúdo'..."
           className="w-full h-40 p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
         />
 
