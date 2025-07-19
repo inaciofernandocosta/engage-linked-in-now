@@ -60,7 +60,7 @@ INSTRUÇÕES:
     // Add emoji instruction if requested
     if (useEmojis) {
       systemPrompt += `
-7. Use emojis de forma estratégica para tornar o post mais visual e engajante`;
+7. OBRIGATÓRIO: Use emojis de forma estratégica e abundante para tornar o post mais visual e engajante. Inclua emojis relevantes em diferentes partes do texto, não apenas no início`;
     } else {
       systemPrompt += `
 7. NÃO use emojis no post`;
