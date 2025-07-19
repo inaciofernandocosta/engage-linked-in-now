@@ -66,17 +66,22 @@ Qual dessas dicas ressoa mais com sua experiência? Compartilhe nos comentários
     
     setIsCorrecting(true);
     
-    // Simula a correção por IA
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Exemplo de correção aplicada ao conteúdo
-    const correctedContent = postContent
-      .replace(/\s+/g, ' ') // Remove espaços extras
-      .replace(/([.!?])\s*([a-z])/g, '$1 $2') // Corrige espaçamento após pontuação
-      .trim();
-    
-    setPostContent(correctedContent);
-    setIsCorrecting(false);
+    try {
+      // Aqui será integrada a API GPT para correção real
+      // Por enquanto, simula a correção sem alterar formatação
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // TODO: Implementar chamada real para GPT
+      // const correctedContent = await callGPTCorrection(postContent);
+      
+      // Por enquanto, mantém o conteúdo original (sem correções visuais)
+      console.log('Conteúdo revisado pela IA (sem alterações na formatação)');
+      
+    } catch (error) {
+      console.error('Erro na correção:', error);
+    } finally {
+      setIsCorrecting(false);
+    }
   };
 
   const sendToWebhook = async () => {
