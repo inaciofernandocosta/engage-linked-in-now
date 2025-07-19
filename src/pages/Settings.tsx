@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import { useTheme } from "next-themes";
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -5,18 +7,22 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Bell, Moon, Shield, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [settings, setSettings] = useState({
     notifications: true,
     emailNotifications: false,
-    darkMode: false,
     autoSave: true,
     twoFactor: false
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSettingChange = (key: keyof typeof settings) => {
     setSettings(prev => ({
@@ -30,6 +36,14 @@ const Settings = () => {
     });
   };
 
+  const handleDarkModeToggle = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+    toast({
+      title: "Tema alterado",
+      description: `Modo ${theme === 'dark' ? 'claro' : 'escuro'} ativado.`
+    });
+  };
+
   const handleDeleteAccount = () => {
     toast({
       title: "Ação não disponível",
@@ -37,6 +51,11 @@ const Settings = () => {
       variant: "destructive"
     });
   };
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,8 +125,8 @@ const Settings = () => {
                   </Label>
                   <Switch
                     id="dark-mode"
-                    checked={settings.darkMode}
-                    onCheckedChange={() => handleSettingChange('darkMode')}
+                    checked={theme === 'dark'}
+                    onCheckedChange={handleDarkModeToggle}
                   />
                 </div>
               </div>
