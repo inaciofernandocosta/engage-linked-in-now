@@ -26,19 +26,19 @@ const Header = () => {
   };
 
   return (
-    <header className="h-16 bg-background border-b border-border sticky top-0 z-50 px-4">
-      <div className="h-full flex items-center justify-between max-w-sm mx-auto">
+    <header className="h-14 bg-card border-b border-border sticky top-0 z-50 px-4 shadow-linkedin">
+      <div className="h-full flex items-center justify-between max-w-6xl mx-auto">
         {/* Logo e Status - Clicável para Home */}
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">in</span>
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-all duration-150">
+          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">in</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-foreground">LinkedIn</span>
-            <span className="text-sm font-medium text-blue-600">AI</span>
+            <span className="text-lg font-semibold text-foreground">LinkedIn</span>
+            <span className="text-sm font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">AI</span>
           </div>
-          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-xs text-muted-foreground">{user?.email?.split('@')[0]}</span>
+          <div className="w-2 h-2 bg-success rounded-full"></div>
+          <span className="text-xs text-muted-foreground hidden sm:block">{user?.email?.split('@')[0]}</span>
         </Link>
 
         {/* User Dropdown */}
@@ -59,54 +59,55 @@ const Header = () => {
             </Button>
           </DropdownMenuTrigger>
           
-          <DropdownMenuContent align="end" className="w-64 bg-background border border-border/40">
+          <DropdownMenuContent align="end" className="w-72 bg-card border border-border shadow-linkedin-hover">
             {/* User Info */}
-            <div className="p-4 border-b border-border/40">
+            <div className="p-4 border-b border-border">
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
+                <Avatar className="h-16 w-16 ring-2 ring-border">
                   <AvatarImage src={getAvatarUrl() || undefined} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground font-medium text-lg">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-medium text-sm">{getFullName()}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <div className="flex-1">
+                  <p className="font-semibold text-base text-foreground">{getFullName()}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  <p className="text-xs text-primary mt-1">Ver perfil</p>
                 </div>
               </div>
             </div>
 
             {/* Menu Items */}
-            <div className="py-2">
+            <div className="py-1">
               <DropdownMenuItem asChild>
-                <Link to="/profile" className="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer">
-                  <User className="h-4 w-4" />
-                  Ver perfil
+                <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm cursor-pointer hover:bg-muted rounded-none">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Ver perfil</span>
                 </Link>
               </DropdownMenuItem>
               
               <DropdownMenuItem asChild>
-                <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer">
-                  <Settings className="h-4 w-4" />
-                  Configurações
+                <Link to="/settings" className="flex items-center gap-3 px-4 py-3 text-sm cursor-pointer hover:bg-muted rounded-none">
+                  <Settings className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Configurações</span>
                 </Link>
               </DropdownMenuItem>
               
               <DropdownMenuItem asChild>
-                <Link to="/change-password" className="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer">
-                  <Key className="h-4 w-4" />
-                  Trocar senha
+                <Link to="/change-password" className="flex items-center gap-3 px-4 py-3 text-sm cursor-pointer hover:bg-muted rounded-none">
+                  <Key className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Trocar senha</span>
                 </Link>
               </DropdownMenuItem>
               
-              <DropdownMenuSeparator />
+              <div className="border-t border-border my-1"></div>
               
               <DropdownMenuItem 
                 onClick={handleSignOut}
-                className="flex items-center gap-3 px-4 py-2 text-sm cursor-pointer text-destructive focus:text-destructive"
+                className="flex items-center gap-3 px-4 py-3 text-sm cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10 rounded-none"
               >
-                <LogOut className="h-4 w-4" />
-                Sair
+                <LogOut className="h-5 w-5" />
+                <span className="font-medium">Sair</span>
               </DropdownMenuItem>
             </div>
           </DropdownMenuContent>

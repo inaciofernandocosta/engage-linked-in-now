@@ -232,12 +232,12 @@ const CreateTab = ({
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-6">
       {/* Instruções para IA */}
-      <div className="bg-card rounded-xl p-4 shadow-sm border">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-card-foreground">Instruções ou Rascunho</h3>
-          <span className={`text-xs ${instructionCount > 500 ? 'text-destructive' : 'text-muted-foreground'}`}>
+      <div className="linkedin-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg text-card-foreground">Instruções ou Rascunho</h3>
+          <span className={`text-sm font-medium ${instructionCount > 500 ? 'text-destructive' : 'text-muted-foreground'}`}>
             {instructionCount}/500
           </span>
         </div>
@@ -247,39 +247,39 @@ const CreateTab = ({
           onChange={(e) => setInstructions(e.target.value)}
           maxLength={500}
           placeholder="Ex: Participei nesta sexta feira de uma formação na Statse de conselheiro e foi um evento muito bacana que aprendi muito sobre governança..."
-          className="w-full h-24 p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
+          className="w-full h-32 p-4 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground linkedin-input"
         />
         
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-sm text-muted-foreground mt-3">
           Digite suas ideias ou rascunho que a IA irá transformar em um post profissional
         </p>
       </div>
 
       {/* Geração de IA */}
-      <div className="bg-card rounded-xl p-4 shadow-sm border">
-        <div className="flex items-center space-x-2 mb-4">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
+      <div className="linkedin-card p-6">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <h2 className="font-semibold text-card-foreground">Geração por IA</h2>
+          <h2 className="font-semibold text-lg text-card-foreground">Geração por IA</h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-2">Tamanho</label>
-            <div className="grid grid-cols-3 gap-2">
+            <label className="block text-sm font-medium text-card-foreground mb-3">Tamanho do Post</label>
+            <div className="grid grid-cols-3 gap-3">
               {aiSizeOptions.map(option => (
                 <button
                   key={option.value}
                   onClick={() => setAiParams({...aiParams, size: option.value})}
-                  className={`p-3 rounded-lg text-sm font-medium border transition-colors ${
+                  className={`p-4 rounded-lg text-sm font-medium border transition-all duration-150 ${
                     aiParams.size === option.value 
-                      ? 'bg-primary/10 border-primary text-primary' 
-                      : 'bg-card border-border text-card-foreground hover:bg-muted'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-linkedin-focus' 
+                      : 'bg-card border-border text-card-foreground hover:bg-muted hover:border-primary/50'
                   }`}
                 >
-                  <div>{option.label}</div>
-                  <div className="text-xs text-muted-foreground">{option.desc}</div>
+                  <div className="font-semibold">{option.label}</div>
+                  <div className="text-xs opacity-70 mt-1">{option.desc} caracteres</div>
                 </button>
               ))}
             </div>

@@ -242,9 +242,9 @@ const LinkedInPostAdmin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-sm mx-auto relative overflow-hidden shadow-2xl">
-      {/* Conteúdo Principal */}
-      <main className="flex-1 overflow-y-auto pb-20 pt-4">
+    <div className="min-h-screen bg-background">
+      {/* Main Content */}
+      <main className="max-w-feed mx-auto px-4 py-6">
         {renderTabContent()}
       </main>
 
