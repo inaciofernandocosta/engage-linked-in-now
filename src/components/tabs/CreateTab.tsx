@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Bot, Upload, X, Send, Sparkles, Zap, Check, PenTool } from 'lucide-react';
+import { Bot, Upload, X, Send, Sparkles, Zap, Check, PenTool, ImageIcon } from 'lucide-react';
 import LinkedInPreview from '../LinkedInPreview';
 import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateTabProps {
   postContent: string;
@@ -55,6 +57,11 @@ const CreateTab = ({
   const [instructions, setInstructions] = useState("");
   const instructionCount = instructions.length;
   const { profile, getFullName, getAvatarUrl } = useProfile();
+  const { toast } = useToast();
+  
+  // Estados para geração de imagem
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState("");
   
   // Estado para perfil do usuário (local state para edição)
   const [userProfile, setUserProfile] = useState({
@@ -129,6 +136,60 @@ const CreateTab = ({
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostContent(e.target.value);
+  };
+
+  const generateImage = async () => {
+    if (!imagePrompt.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite uma descrição para a imagem",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: {
+          prompt: imagePrompt,
+          size: "1024x1024",
+          quality: "standard",
+          style: "vivid"
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.success && data.image) {
+        setImages(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          url: data.image,
+          name: `AI Generated: ${imagePrompt.substring(0, 30)}...`
+        }]);
+        
+        setImagePrompt("");
+        
+        toast({
+          title: "Sucesso!",
+          description: "Imagem gerada com sucesso",
+        });
+      } else {
+        throw new Error(data.error || 'Erro ao gerar imagem');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao gerar imagem com IA",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   if (currentStep === 'webhook') {
@@ -322,13 +383,15 @@ const CreateTab = ({
         <div className="mt-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-card-foreground text-sm">Imagens</h4>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center space-x-1 text-primary hover:text-primary/80 text-sm"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Adicionar</span>
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center space-x-1 text-primary hover:text-primary/80 text-sm"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Upload</span>
+              </button>
+            </div>
           </div>
 
           <input
@@ -339,6 +402,48 @@ const CreateTab = ({
             onChange={handleImageUpload}
             className="hidden"
           />
+
+          {/* Geração de Imagem com IA */}
+          <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-md flex items-center justify-center">
+                <ImageIcon className="w-3 h-3 text-white" />
+              </div>
+              <h5 className="font-medium text-sm">Gerar Imagem com IA</h5>
+            </div>
+            
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+                placeholder="Descreva a imagem que deseja gerar..."
+                className="flex-1 p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
+                onKeyPress={(e) => e.key === 'Enter' && !isGeneratingImage && generateImage()}
+              />
+              <button
+                onClick={generateImage}
+                disabled={isGeneratingImage || !imagePrompt.trim()}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 text-sm"
+              >
+                {isGeneratingImage ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Gerando...</span>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Gerar</span>
+                  </>
+                )}
+              </button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground mt-2">
+              Use descrições detalhadas para melhores resultados. Ex: "Uma pessoa trabalhando em um laptop moderno em um escritório com iluminação natural"
+            </p>
+          </div>
 
           {images.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
