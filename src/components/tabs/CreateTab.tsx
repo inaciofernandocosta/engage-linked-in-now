@@ -52,20 +52,6 @@ const CreateTab = ({
   const characterCount = postContent.length;
   const [instructions, setInstructions] = useState("");
   const instructionCount = instructions.length;
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [mentionPosition, setMentionPosition] = useState(0);
-  
-  // Lista de sugestões de exemplo (você pode expandir isso futuramente)
-  const commonMentions = [
-    { name: "LinkedIn", handle: "linkedin" },
-    { name: "Microsoft", handle: "microsoft" },
-    { name: "Google", handle: "google" },
-    { name: "Meta", handle: "meta" },
-    { name: "Amazon", handle: "amazon" },
-    { name: "Apple", handle: "apple" },
-    { name: "Tesla", handle: "tesla" },
-    { name: "Netflix", handle: "netflix" },
-  ];
 
   const aiSizeOptions = [
     { value: 'short', label: 'Curto', desc: '300-500' },
@@ -107,38 +93,7 @@ const CreateTab = ({
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    const cursorPosition = e.target.selectionStart;
-    
-    setPostContent(value);
-    
-    // Detectar @ para sugestões
-    const textBeforeCursor = value.substring(0, cursorPosition);
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1) {
-      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
-      // Mostrar sugestões se não há espaço depois do @
-      if (!textAfterAt.includes(' ') && textAfterAt.length >= 0) {
-        setMentionPosition(lastAtIndex);
-        setShowSuggestions(true);
-      } else {
-        setShowSuggestions(false);
-      }
-    } else {
-      setShowSuggestions(false);
-    }
-  };
-
-  const insertMention = (handle: string) => {
-    const textBeforeMention = postContent.substring(0, mentionPosition);
-    const textAfterMention = postContent.substring(mentionPosition + 1);
-    const atIndex = textAfterMention.indexOf(' ');
-    const remainingText = atIndex !== -1 ? textAfterMention.substring(atIndex) : '';
-    
-    const newContent = `${textBeforeMention}@${handle}${remainingText}`;
-    setPostContent(newContent);
-    setShowSuggestions(false);
+    setPostContent(e.target.value);
   };
 
   if (currentStep === 'webhook') {
@@ -320,34 +275,13 @@ const CreateTab = ({
           </div>
         </div>
 
-        <div className="relative">
-          <textarea
-            value={postContent}
-            onChange={handleContentChange}
-            maxLength={characterLimit}
-            placeholder="O conteúdo gerado pela IA aparecerá aqui. Você pode editá-lo antes de usar o botão 'Corrigir Conteúdo'..."
-            className="w-full h-40 p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
-          />
-          
-          {/* Sugestões de @ */}
-          {showSuggestions && (
-            <div className="absolute z-10 mt-1 w-64 bg-card border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-              <div className="p-2">
-                <div className="text-xs text-muted-foreground mb-2">Sugestões de menção:</div>
-                {commonMentions.map((mention, index) => (
-                  <button
-                    key={index}
-                    onClick={() => insertMention(mention.handle)}
-                    className="w-full text-left px-2 py-1 rounded hover:bg-muted text-sm flex items-center space-x-2"
-                  >
-                    <span className="font-medium">@{mention.handle}</span>
-                    <span className="text-muted-foreground">({mention.name})</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <textarea
+          value={postContent}
+          onChange={handleContentChange}
+          maxLength={characterLimit}
+          placeholder="O conteúdo gerado pela IA aparecerá aqui. Você pode editá-lo antes de usar o botão 'Corrigir Conteúdo'..."
+          className="w-full h-40 p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
+        />
 
         {/* Upload de Imagens */}
         <div className="mt-4">
