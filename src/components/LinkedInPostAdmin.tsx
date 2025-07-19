@@ -206,6 +206,11 @@ const LinkedInPostAdmin = () => {
       const imageUrl = images.length > 0 ? images[0].url : null;
       const webhookUrl = "https://eo6y8yafmyxp7kj.m.pipedream.net";
 
+      console.log('=== ENVIANDO PARA PUBLISH-POST ===');
+      console.log('Conteúdo:', postContent);
+      console.log('ImageUrl:', imageUrl);
+      console.log('WebhookUrl:', webhookUrl);
+
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           content: postContent,
@@ -214,18 +219,24 @@ const LinkedInPostAdmin = () => {
         }
       });
 
+      console.log('=== RESPOSTA DA FUNÇÃO ===');
+      console.log('Data:', data);
+      console.log('Error:', error);
+
       if (error) {
+        console.error('Erro da edge function:', error);
         throw new Error(error.message);
       }
 
-      if (data.success) {
+      if (data?.success) {
         toast({
           title: "Post Publicado!",
           description: "Post salvo no banco e webhook notificado com sucesso",
         });
         setCurrentStep('approval');
       } else {
-        throw new Error(data.error || 'Erro ao publicar post');
+        console.error('Falha na publicação:', data);
+        throw new Error(data?.error || 'Erro ao publicar post');
       }
     } catch (error) {
       console.error('Erro ao publicar post:', error);

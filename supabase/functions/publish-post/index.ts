@@ -14,9 +14,29 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== INÍCIO DA FUNÇÃO PUBLISH-POST ===');
+    console.log('Headers recebidos:', Object.fromEntries(req.headers.entries()));
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    
+    console.log('SUPABASE_URL existe:', !!supabaseUrl);
+    console.log('SUPABASE_ANON_KEY existe:', !!supabaseAnonKey);
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Variáveis de ambiente faltando');
+      return new Response(
+        JSON.stringify({ error: 'Configuração do servidor incompleta' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseAnonKey,
       {
         global: {
           headers: { Authorization: req.headers.get('Authorization')! },
@@ -171,11 +191,18 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro geral na função:', error);
+    console.error('=== ERRO GERAL NA FUNÇÃO ===');
+    console.error('Tipo do erro:', typeof error);
+    console.error('Nome do erro:', error?.name);
+    console.error('Mensagem do erro:', error?.message);
+    console.error('Stack trace:', error?.stack);
+    console.error('Erro completo:', error);
+    
     return new Response(
       JSON.stringify({ 
         error: 'Erro interno do servidor', 
-        details: error.message 
+        details: error?.message || 'Erro desconhecido',
+        type: error?.name || 'Unknown'
       }),
       { 
         status: 500, 
