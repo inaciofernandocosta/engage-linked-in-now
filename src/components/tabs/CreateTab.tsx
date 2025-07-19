@@ -61,6 +61,7 @@ const CreateTab = ({
   
   // Estados para geração de imagem
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isAnalyzingContent, setIsAnalyzingContent] = useState(false);
   const [imagePrompt, setImagePrompt] = useState("");
   
   // Estado para perfil do usuário (local state para edição)
@@ -189,6 +190,55 @@ const CreateTab = ({
       });
     } finally {
       setIsGeneratingImage(false);
+    }
+  };
+
+  const generateImageFromContent = async () => {
+    if (!postContent.trim()) {
+      toast({
+        title: "Erro",
+        description: "Crie ou cole conteúdo no post primeiro",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzingContent(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-and-generate-image', {
+        body: {
+          postContent: postContent
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.success && data.image) {
+        setImages(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          url: data.image,
+          name: `IA: ${data.prompt.substring(0, 40)}...`
+        }]);
+        
+        toast({
+          title: "Imagem Gerada!",
+          description: `Baseada no conteúdo: "${data.originalContent}"`,
+        });
+      } else {
+        throw new Error(data.error || 'Erro ao analisar e gerar imagem');
+      }
+    } catch (error) {
+      console.error('Erro ao analisar conteúdo e gerar imagem:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao analisar conteúdo e gerar imagem",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzingContent(false);
     }
   };
 
@@ -391,6 +441,25 @@ const CreateTab = ({
                 <Upload className="w-4 h-4" />
                 <span>Upload</span>
               </button>
+              {postContent.trim() && (
+                <button
+                  onClick={generateImageFromContent}
+                  disabled={isAnalyzingContent}
+                  className="flex items-center space-x-1 text-green-600 hover:text-green-700 text-sm font-medium"
+                >
+                  {isAnalyzingContent ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Analisando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="w-4 h-4" />
+                      <span>IA do Post</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
