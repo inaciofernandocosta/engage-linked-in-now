@@ -99,7 +99,6 @@ Responda APENAS com o prompt em inglês, sem explicações adicionais.`
         n: 1,
         size: "1024x1024",
         quality: "standard",
-        style: "natural", // Estilo mais natural para posts profissionais
         response_format: 'b64_json'
       }),
     });
