@@ -120,6 +120,8 @@ const Profile = () => {
           job_title: profile.job_title,
           avatar_url: profile.avatar_url,
           email: user?.email
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) {
