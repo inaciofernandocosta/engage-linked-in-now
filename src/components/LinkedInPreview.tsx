@@ -3,16 +3,19 @@ import React from 'react';
 interface LinkedInPreviewProps {
   postContent: string;
   images: Array<{ id: number; url: string; name: string }>;
+  userAvatar?: string;
+  userName?: string;
+  userTitle?: string;
 }
 
-const LinkedInPreview = ({ postContent, images }: LinkedInPreviewProps) => {
+const LinkedInPreview = ({ postContent, images, userAvatar, userName = "Seu Nome", userTitle = "Desenvolvedor Full Stack | Especialista em React e Node.js" }: LinkedInPreviewProps) => {
   return (
     <div className="bg-card rounded-lg border shadow-sm w-full" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <div className="px-4 pt-3 pb-0">
         <div className="flex items-start space-x-2">
           <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
             <img 
-              src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiMwQTY2QzIiLz4KPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+VTwvdGV4dD4KPHN2Zz4=" 
+              src={userAvatar || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiMwQTY2QzIiLz4KPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+VTwvdGV4dD4KPHN2Zz4="} 
               alt="Usuário" 
               className="w-full h-full object-cover"
             />
@@ -21,14 +24,14 @@ const LinkedInPreview = ({ postContent, images }: LinkedInPreviewProps) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center">
               <h3 className="text-sm font-semibold text-card-foreground hover:text-primary cursor-pointer hover:underline">
-                Seu Nome
+                {userName}
               </h3>
               <span className="text-muted-foreground mx-1">•</span>
               <span className="text-xs text-muted-foreground">1º</span>
             </div>
             
             <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
-              Desenvolvedor Full Stack | Especialista em React e Node.js
+              {userTitle}
             </p>
             
             <div className="flex items-center text-xs text-muted-foreground mt-1">

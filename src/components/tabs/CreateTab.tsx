@@ -48,10 +48,18 @@ const CreateTab = ({
   setCurrentStep,
 }: CreateTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const characterLimit = 3000;
   const characterCount = postContent.length;
   const [instructions, setInstructions] = useState("");
   const instructionCount = instructions.length;
+  
+  // Estado para perfil do usuário
+  const [userProfile, setUserProfile] = useState({
+    avatar: "",
+    name: "Seu Nome",
+    title: "Desenvolvedor Full Stack | Especialista em React e Node.js"
+  });
 
   const aiSizeOptions = [
     { value: 'short', label: 'Curto', desc: '300-500' },
@@ -90,6 +98,20 @@ const CreateTab = ({
 
   const removeImage = (id: number) => {
     setImages(prev => prev.filter(img => img.id !== id));
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUserProfile(prev => ({
+          ...prev,
+          avatar: e.target?.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -353,11 +375,72 @@ const CreateTab = ({
         </div>
       )}
 
+      {/* Configuração do Perfil */}
+      <div className="bg-card rounded-xl p-4 shadow-sm border">
+        <h3 className="font-semibold text-card-foreground mb-3">Perfil do Usuário</h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border border-border">
+              <img 
+                src={userProfile.avatar || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMwQTY2QzIiLz4KPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+VTwvdGV4dD4KPHN2Zz4="} 
+                alt="Avatar" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              className="flex items-center space-x-2 text-primary hover:text-primary/80 text-sm"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Alterar Foto</span>
+            </button>
+            
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Nome</label>
+            <input
+              type="text"
+              value={userProfile.name}
+              onChange={(e) => setUserProfile(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
+              placeholder="Seu nome"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Título/Cargo</label>
+            <input
+              type="text"
+              value={userProfile.title}
+              onChange={(e) => setUserProfile(prev => ({ ...prev, title: e.target.value }))}
+              className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
+              placeholder="Ex: Desenvolvedor Full Stack | Especialista em React"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Preview */}
       {postContent && (
         <div className="bg-card rounded-xl p-4 shadow-sm border">
           <h3 className="font-semibold text-card-foreground mb-3">Preview LinkedIn</h3>
-          <LinkedInPreview postContent={postContent} images={images} />
+          <LinkedInPreview 
+            postContent={postContent} 
+            images={images}
+            userAvatar={userProfile.avatar}
+            userName={userProfile.name}
+            userTitle={userProfile.title}
+          />
         </div>
       )}
 
