@@ -8,23 +8,25 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('=== PUBLISH-POST FUNÇÃO INICIADA ===');
+  console.log('Método:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Respondendo OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('=== INÍCIO DA FUNÇÃO PUBLISH-POST ===');
-    console.log('Headers recebidos:', Object.fromEntries(req.headers.entries()));
-    
+    // Verificar variáveis de ambiente
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     console.log('SUPABASE_URL existe:', !!supabaseUrl);
-    console.log('SUPABASE_ANON_KEY existe:', !!supabaseAnonKey);
+    console.log('SUPABASE_SERVICE_ROLE_KEY existe:', !!supabaseServiceKey);
     
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Variáveis de ambiente faltando');
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Variáveis de ambiente faltando!');
       return new Response(
         JSON.stringify({ error: 'Configuração do servidor incompleta' }),
         { 
@@ -34,29 +36,70 @@ serve(async (req) => {
       );
     }
 
+    // Criar cliente Supabase com service role para bypass RLS
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Obter dados do body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Body recebido:', requestBody);
+    } catch (e) {
+      console.error('Erro ao fazer parse do JSON:', e);
+      return new Response(
+        JSON.stringify({ error: 'JSON inválido' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const { content, imageUrl, webhookUrl } = requestBody;
+
+    if (!content?.trim()) {
+      console.error('Conteúdo está vazio');
+      return new Response(
+        JSON.stringify({ error: 'Conteúdo é obrigatório' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Obter usuário do JWT token
+    const authHeader = req.headers.get('Authorization');
+    console.log('Auth header presente:', !!authHeader);
+    
+    if (!authHeader) {
+      console.error('Header de autorização ausente');
+      return new Response(
+        JSON.stringify({ error: 'Usuário não autenticado' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Criar cliente com auth para obter usuário
     const supabaseClient = createClient(
       supabaseUrl,
-      supabaseAnonKey,
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     );
 
-    const { content, imageUrl, webhookUrl } = await req.json();
-    console.log('Iniciando processo de publicação do post...');
-    console.log('Conteúdo:', content);
-    console.log('URL da imagem:', imageUrl);
-    console.log('Webhook URL:', webhookUrl);
-
-    // Obter o usuário atual
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
     if (userError || !user) {
       console.error('Erro ao obter usuário:', userError);
       return new Response(
-        JSON.stringify({ error: 'Usuário não autenticado' }),
+        JSON.stringify({ error: 'Usuário não autenticado', details: userError?.message }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -69,9 +112,9 @@ serve(async (req) => {
     let finalImageUrl = imageUrl;
     let imageStoragePath = null;
 
-    // Se temos uma URL de imagem, baixar e salvar no storage
+    // Processar imagem se fornecida
     if (imageUrl && imageUrl.startsWith('http')) {
-      console.log('Baixando imagem da URL:', imageUrl);
+      console.log('Processando imagem:', imageUrl);
       
       try {
         const imageResponse = await fetch(imageUrl);
@@ -80,15 +123,13 @@ serve(async (req) => {
         }
 
         const imageBlob = await imageResponse.blob();
-        console.log('Imagem baixada com sucesso, tamanho:', imageBlob.size);
+        console.log('Imagem baixada, tamanho:', imageBlob.size);
         
-        // Criar nome único para o arquivo
         const timestamp = Date.now();
         const fileName = `${user.id}/${timestamp}.png`;
         imageStoragePath = fileName;
 
-        // Upload para o storage
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
           .from('post-images')
           .upload(fileName, imageBlob, {
             cacheControl: '3600',
@@ -100,15 +141,14 @@ serve(async (req) => {
           throw new Error(`Erro no upload: ${uploadError.message}`);
         }
 
-        console.log('Upload realizado com sucesso:', uploadData);
+        console.log('Upload realizado:', uploadData);
 
-        // Obter URL pública da imagem
-        const { data: publicUrlData } = supabaseClient.storage
+        const { data: publicUrlData } = supabaseAdmin.storage
           .from('post-images')
           .getPublicUrl(fileName);
 
         finalImageUrl = publicUrlData.publicUrl;
-        console.log('URL pública da imagem:', finalImageUrl);
+        console.log('URL pública gerada:', finalImageUrl);
 
       } catch (uploadError) {
         console.error('Erro ao processar imagem:', uploadError);
@@ -118,9 +158,9 @@ serve(async (req) => {
       }
     }
 
-    // Salvar post no banco de dados
-    console.log('Salvando post no banco de dados...');
-    const { data: postData, error: postError } = await supabaseClient
+    // Salvar post no banco
+    console.log('Salvando post no banco...');
+    const { data: postData, error: postError } = await supabaseAdmin
       .from('posts')
       .insert({
         user_id: user.id,
@@ -135,7 +175,7 @@ serve(async (req) => {
     if (postError) {
       console.error('Erro ao salvar post:', postError);
       return new Response(
-        JSON.stringify({ error: 'Erro ao salvar post no banco de dados', details: postError.message }),
+        JSON.stringify({ error: 'Erro ao salvar post', details: postError.message }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -143,9 +183,9 @@ serve(async (req) => {
       );
     }
 
-    console.log('Post salvo com sucesso:', postData);
+    console.log('Post salvo com sucesso:', postData.id);
 
-    // Notificar webhook
+    // Notificar webhook se fornecido
     if (webhookUrl) {
       console.log('Notificando webhook:', webhookUrl);
       
@@ -166,19 +206,21 @@ serve(async (req) => {
           body: JSON.stringify(webhookPayload),
         });
 
+        console.log('Webhook response status:', webhookResponse.status);
+
         if (!webhookResponse.ok) {
-          console.error('Erro no webhook:', webhookResponse.status, webhookResponse.statusText);
-          throw new Error(`Webhook retornou status ${webhookResponse.status}`);
+          console.warn('Webhook falhou mas continuando...');
+        } else {
+          console.log('Webhook notificado com sucesso');
         }
 
-        console.log('Webhook notificado com sucesso');
-
       } catch (webhookError) {
-        console.error('Erro ao notificar webhook:', webhookError);
+        console.error('Erro no webhook (não crítico):', webhookError);
         // Não falhar a operação por causa do webhook
       }
     }
 
+    console.log('=== PUBLICAÇÃO CONCLUÍDA COM SUCESSO ===');
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -192,17 +234,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('=== ERRO GERAL NA FUNÇÃO ===');
-    console.error('Tipo do erro:', typeof error);
-    console.error('Nome do erro:', error?.name);
-    console.error('Mensagem do erro:', error?.message);
-    console.error('Stack trace:', error?.stack);
-    console.error('Erro completo:', error);
+    console.error('Erro:', error);
+    console.error('Stack:', error?.stack);
     
     return new Response(
       JSON.stringify({ 
         error: 'Erro interno do servidor', 
-        details: error?.message || 'Erro desconhecido',
-        type: error?.name || 'Unknown'
+        details: error?.message || 'Erro desconhecido'
       }),
       { 
         status: 500, 
