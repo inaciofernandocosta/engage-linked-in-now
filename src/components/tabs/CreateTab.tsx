@@ -51,7 +51,6 @@ const CreateTab = ({
   setCurrentStep,
 }: CreateTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
   const characterLimit = 3000;
   const characterCount = postContent.length;
   const [instructions, setInstructions] = useState("");
@@ -61,24 +60,6 @@ const CreateTab = ({
   
   // Estados para geração de imagem
   const [isAnalyzingContent, setIsAnalyzingContent] = useState(false);
-  
-  // Estado para perfil do usuário (local state para edição)
-  const [userProfile, setUserProfile] = useState({
-    avatar: "",
-    name: "Seu Nome",
-    title: "Desenvolvedor Full Stack | Especialista em React e Node.js"
-  });
-
-  // Atualizar perfil local quando os dados do banco carregarem
-  useEffect(() => {
-    if (profile) {
-      setUserProfile({
-        avatar: getAvatarUrl() || "",
-        name: getFullName(),
-        title: profile.job_title || "Desenvolvedor Full Stack | Especialista em React e Node.js"
-      });
-    }
-  }, [profile, getFullName, getAvatarUrl]);
 
   const aiSizeOptions = [
     { value: 'short', label: 'Curto', desc: '300-500' },
@@ -119,19 +100,6 @@ const CreateTab = ({
     setImages(prev => prev.filter(img => img.id !== id));
   };
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUserProfile(prev => ({
-          ...prev,
-          avatar: e.target?.result as string
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostContent(e.target.value);
@@ -473,86 +441,6 @@ const CreateTab = ({
         </div>
       </div>
 
-      {/* Correção por IA */}
-      {postContent && (
-        <div className="bg-card rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-card-foreground">Correção IA</h3>
-          </div>
-          <button 
-            onClick={correctContent}
-            disabled={isCorrecting}
-            className="w-full bg-secondary text-secondary-foreground py-3 px-4 rounded-xl font-medium hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-          >
-            {isCorrecting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-secondary-foreground border-t-transparent rounded-full animate-spin"></div>
-                <span>Corrigindo...</span>
-              </>
-            ) : (
-              <>
-                <PenTool className="w-4 h-4" />
-                <span>Corrigir Conteúdo</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Configuração do Perfil */}
-      <div className="bg-card rounded-xl p-4 shadow-sm border">
-        <h3 className="font-semibold text-card-foreground mb-3">Perfil do Usuário</h3>
-        
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border border-border">
-              <img 
-                src={userProfile.avatar || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMwQTY2QzIiLz4KPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+VTwvdGV4dD4KPHN2Zz4="} 
-                alt="Avatar" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              className="flex items-center space-x-2 text-primary hover:text-primary/80 text-sm"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Alterar Foto</span>
-            </button>
-            
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              className="hidden"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Nome</label>
-            <input
-              type="text"
-              value={userProfile.name}
-              onChange={(e) => setUserProfile(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
-              placeholder="Seu nome"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Título/Cargo</label>
-            <input
-              type="text"
-              value={userProfile.title}
-              onChange={(e) => setUserProfile(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
-              placeholder="Ex: Desenvolvedor Full Stack | Especialista em React"
-            />
-          </div>
-        </div>
-      </div>
 
       {/* Preview */}
       {postContent && (
@@ -561,9 +449,9 @@ const CreateTab = ({
           <LinkedInPreview 
             postContent={postContent} 
             images={images}
-            userAvatar={userProfile.avatar}
-            userName={userProfile.name}
-            userTitle={userProfile.title}
+            userAvatar={getAvatarUrl() || ""}
+            userName={getFullName()}
+            userTitle={profile?.job_title || "Desenvolvedor Full Stack"}
           />
         </div>
       )}
