@@ -191,6 +191,8 @@ const LinkedInPostAdmin = () => {
   };
 
   const sendToWebhook = async () => {
+    console.log('=== INICIANDO PUBLICAÇÃO ===');
+    
     if (!postContent.trim()) {
       toast({
         title: "Erro",
@@ -206,11 +208,13 @@ const LinkedInPostAdmin = () => {
       const imageUrl = images.length > 0 ? images[0].url : null;
       const webhookUrl = "https://eo6y8yafmyxp7kj.m.pipedream.net";
 
-      console.log('=== ENVIANDO PARA PUBLISH-POST ===');
-      console.log('Conteúdo:', postContent);
-      console.log('ImageUrl:', imageUrl);
-      console.log('WebhookUrl:', webhookUrl);
+      console.log('Dados para enviar:');
+      console.log('- Content:', postContent);
+      console.log('- ImageUrl:', imageUrl);
+      console.log('- WebhookUrl:', webhookUrl);
 
+      console.log('Chamando supabase.functions.invoke...');
+      
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           content: postContent,
@@ -219,30 +223,49 @@ const LinkedInPostAdmin = () => {
         }
       });
 
-      console.log('=== RESPOSTA DA FUNÇÃO ===');
-      console.log('Data:', data);
-      console.log('Error:', error);
+      console.log('=== RESPOSTA SUPABASE FUNCTIONS ===');
+      console.log('Raw data:', data);
+      console.log('Raw error:', error);
+      console.log('Error details:', error ? {
+        message: error.message,
+        name: error.name,
+        status: error.status,
+        statusText: error.statusText,
+        details: error.details
+      } : 'No error');
 
       if (error) {
-        console.error('Erro da edge function:', error);
-        throw new Error(error.message);
+        console.error('❌ Edge function error:', error);
+        throw new Error(`Edge Function Error: ${error.message || 'Unknown error'}`);
       }
 
-      if (data?.success) {
+      if (!data) {
+        console.error('❌ No data returned');
+        throw new Error('Nenhum dado retornado da função');
+      }
+
+      if (data.success) {
+        console.log('✅ Sucesso!');
         toast({
           title: "Post Publicado!",
           description: "Post salvo no banco e webhook notificado com sucesso",
         });
         setCurrentStep('approval');
       } else {
-        console.error('Falha na publicação:', data);
-        throw new Error(data?.error || 'Erro ao publicar post');
+        console.error('❌ Success = false:', data);
+        throw new Error(data.error || data.details || 'Erro desconhecido na publicação');
       }
+      
     } catch (error) {
-      console.error('Erro ao publicar post:', error);
+      console.error('=== ERRO CATCH GERAL ===');
+      console.error('Error type:', typeof error);
+      console.error('Error name:', error?.name);
+      console.error('Error message:', error?.message);
+      console.error('Full error:', error);
+      
       toast({
-        title: "Erro",
-        description: error.message || "Erro ao publicar post",
+        title: "Erro na Publicação",
+        description: error?.message || "Erro desconhecido ao publicar post",
         variant: "destructive",
       });
       setCurrentStep('create');

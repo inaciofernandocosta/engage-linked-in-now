@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -8,244 +7,198 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('=== PUBLISH-POST FUNÇÃO INICIADA ===');
-  console.log('Método:', req.method);
+  console.log('=== PUBLISH-POST INICIADO ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Respondendo OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verificar variáveis de ambiente
+    // 1. Verificar variáveis de ambiente
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     
-    console.log('SUPABASE_URL existe:', !!supabaseUrl);
-    console.log('SUPABASE_SERVICE_ROLE_KEY existe:', !!supabaseServiceKey);
+    console.log('ENV CHECK:');
+    console.log('- SUPABASE_URL:', !!supabaseUrl);
+    console.log('- SERVICE_KEY:', !!supabaseServiceKey);
+    console.log('- ANON_KEY:', !!supabaseAnonKey);
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Variáveis de ambiente faltando!');
+      console.error('ERRO: Variáveis de ambiente faltando');
       return new Response(
-        JSON.stringify({ error: 'Configuração do servidor incompleta' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Configuração incompleta' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Criar cliente Supabase com service role para bypass RLS
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Obter dados do body
-    let requestBody;
+    // 2. Parse do body
+    let body;
     try {
-      requestBody = await req.json();
-      console.log('Body recebido:', requestBody);
+      const text = await req.text();
+      console.log('Raw body:', text);
+      body = JSON.parse(text);
+      console.log('Parsed body:', body);
     } catch (e) {
-      console.error('Erro ao fazer parse do JSON:', e);
+      console.error('ERRO: Parse JSON falhou:', e);
       return new Response(
         JSON.stringify({ error: 'JSON inválido' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { content, imageUrl, webhookUrl } = requestBody;
+    const { content, imageUrl, webhookUrl } = body;
+    console.log('Content:', content);
+    console.log('ImageUrl:', imageUrl);
+    console.log('WebhookUrl:', webhookUrl);
 
     if (!content?.trim()) {
-      console.error('Conteúdo está vazio');
+      console.error('ERRO: Conteúdo vazio');
       return new Response(
-        JSON.stringify({ error: 'Conteúdo é obrigatório' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Conteúdo obrigatório' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Obter usuário do JWT token
+    // 3. Verificar autenticação
     const authHeader = req.headers.get('Authorization');
-    console.log('Auth header presente:', !!authHeader);
+    console.log('Auth header:', authHeader ? 'Presente' : 'Ausente');
     
     if (!authHeader) {
-      console.error('Header de autorização ausente');
+      console.error('ERRO: Header de auth ausente');
       return new Response(
-        JSON.stringify({ error: 'Usuário não autenticado' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Não autenticado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Criar cliente com auth para obter usuário
-    const supabaseClient = createClient(
-      supabaseUrl,
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
+    // 4. Obter usuário
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
+    console.log('Verificando usuário...');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
-    if (userError || !user) {
-      console.error('Erro ao obter usuário:', userError);
+    if (userError) {
+      console.error('ERRO getUserError:', userError);
       return new Response(
-        JSON.stringify({ error: 'Usuário não autenticado', details: userError?.message }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Falha na autenticação', details: userError.message }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Usuário autenticado:', user.id);
-
-    let finalImageUrl = imageUrl;
-    let imageStoragePath = null;
-
-    // Processar imagem se fornecida
-    if (imageUrl && imageUrl.startsWith('http')) {
-      console.log('Processando imagem:', imageUrl);
-      
-      try {
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) {
-          throw new Error(`Erro ao baixar imagem: ${imageResponse.status}`);
-        }
-
-        const imageBlob = await imageResponse.blob();
-        console.log('Imagem baixada, tamanho:', imageBlob.size);
-        
-        const timestamp = Date.now();
-        const fileName = `${user.id}/${timestamp}.png`;
-        imageStoragePath = fileName;
-
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-          .from('post-images')
-          .upload(fileName, imageBlob, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) {
-          console.error('Erro no upload:', uploadError);
-          throw new Error(`Erro no upload: ${uploadError.message}`);
-        }
-
-        console.log('Upload realizado:', uploadData);
-
-        const { data: publicUrlData } = supabaseAdmin.storage
-          .from('post-images')
-          .getPublicUrl(fileName);
-
-        finalImageUrl = publicUrlData.publicUrl;
-        console.log('URL pública gerada:', finalImageUrl);
-
-      } catch (uploadError) {
-        console.error('Erro ao processar imagem:', uploadError);
-        // Continuar sem a imagem em caso de erro
-        finalImageUrl = null;
-        imageStoragePath = null;
-      }
+    if (!user) {
+      console.error('ERRO: User null');
+      return new Response(
+        JSON.stringify({ error: 'Usuário não encontrado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Salvar post no banco
-    console.log('Salvando post no banco...');
-    const { data: postData, error: postError } = await supabaseAdmin
+    console.log('Usuário OK:', user.id);
+
+    // 5. Criar admin client e testar conexão
+    console.log('Criando admin client...');
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Teste rápido de conexão
+    console.log('Testando conexão admin...');
+    const { data: testData, error: testError } = await supabaseAdmin
       .from('posts')
-      .insert({
-        user_id: user.id,
-        content: content,
-        image_url: finalImageUrl,
-        image_storage_path: imageStoragePath,
-        webhook_url: webhookUrl
-      })
+      .select('count')
+      .limit(1);
+    
+    if (testError) {
+      console.error('ERRO: Teste conexão falhou:', testError);
+      return new Response(
+        JSON.stringify({ error: 'Falha conexão DB', details: testError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Conexão admin OK');
+
+    // 6. Inserir post (versão simples primeiro)
+    console.log('Inserindo post...');
+    const postData = {
+      user_id: user.id,
+      content: content,
+      image_url: imageUrl || null,
+      image_storage_path: null,
+      webhook_url: webhookUrl || null
+    };
+    
+    console.log('Dados a inserir:', postData);
+
+    const { data: insertedPost, error: insertError } = await supabaseAdmin
+      .from('posts')
+      .insert(postData)
       .select()
       .single();
 
-    if (postError) {
-      console.error('Erro ao salvar post:', postError);
+    if (insertError) {
+      console.error('ERRO INSERT:', insertError);
       return new Response(
-        JSON.stringify({ error: 'Erro ao salvar post', details: postError.message }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ 
+          error: 'Falha ao inserir post', 
+          details: insertError.message,
+          code: insertError.code,
+          hint: insertError.hint
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Post salvo com sucesso:', postData.id);
+    console.log('POST INSERIDO COM SUCESSO:', insertedPost);
 
-    // Notificar webhook se fornecido
+    // 7. Notificar webhook (se fornecido)
     if (webhookUrl) {
-      console.log('Notificando webhook:', webhookUrl);
-      
+      console.log('Notificando webhook...');
       try {
-        const webhookPayload = {
-          post_id: postData.id,
-          content: content,
-          image_url: finalImageUrl,
-          published_at: postData.published_at,
-          user_id: user.id
-        };
-
         const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(webhookPayload),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            post_id: insertedPost.id,
+            content: content,
+            image_url: imageUrl,
+            published_at: insertedPost.published_at,
+            user_id: user.id
+          }),
         });
-
-        console.log('Webhook response status:', webhookResponse.status);
-
-        if (!webhookResponse.ok) {
-          console.warn('Webhook falhou mas continuando...');
-        } else {
-          console.log('Webhook notificado com sucesso');
-        }
-
+        console.log('Webhook status:', webhookResponse.status);
       } catch (webhookError) {
-        console.error('Erro no webhook (não crítico):', webhookError);
-        // Não falhar a operação por causa do webhook
+        console.error('Webhook falhou (não crítico):', webhookError);
       }
     }
 
-    console.log('=== PUBLICAÇÃO CONCLUÍDA COM SUCESSO ===');
+    console.log('=== SUCESSO TOTAL ===');
     return new Response(
       JSON.stringify({ 
         success: true, 
-        post: postData,
-        message: 'Post publicado com sucesso!' 
+        post: insertedPost,
+        message: 'Post publicado!' 
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('=== ERRO GERAL NA FUNÇÃO ===');
-    console.error('Erro:', error);
-    console.error('Stack:', error?.stack);
+    console.error('=== ERRO GERAL ===');
+    console.error('Error name:', error?.name);
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
+    console.error('Full error:', error);
     
     return new Response(
       JSON.stringify({ 
-        error: 'Erro interno do servidor', 
-        details: error?.message || 'Erro desconhecido'
+        error: 'Erro interno', 
+        details: error?.message,
+        name: error?.name
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
