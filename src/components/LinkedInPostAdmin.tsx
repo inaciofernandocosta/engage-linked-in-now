@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Bot, Bell } from 'lucide-react';
 import PWAStatusBar from './PWAStatusBar';
@@ -73,38 +74,65 @@ Qual dessas dicas ressoa mais com sua experiência? Compartilhe nos comentários
       });
       return;
     }
+
+    if (!isOnline) {
+      toast({
+        title: "Erro de conectividade",
+        description: "Você precisa estar online para usar a correção por IA",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsCorrecting(true);
     
     try {
-      console.log('Calling correct-content function...');
+      console.log('Iniciando correção de conteúdo...');
+      console.log('Conteúdo original:', postContent.substring(0, 100) + '...');
       
       const { data, error } = await supabase.functions.invoke('correct-content', {
         body: { content: postContent }
       });
 
+      console.log('Resposta da função:', { data, error });
+
       if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to correct content');
+        console.error('Erro da função Supabase:', error);
+        throw new Error(error.message || 'Falha ao corrigir conteúdo');
       }
 
-      if (data.error) {
+      if (data?.error) {
+        console.error('Erro retornado pela função:', data.error);
         throw new Error(data.error);
       }
 
-      if (data.correctedContent) {
-        setPostContent(data.correctedContent);
-        toast({
-          title: "Conteúdo corrigido!",
-          description: "O conteúdo foi revisado e corrigido pela IA",
-        });
+      if (!data?.correctedContent) {
+        console.error('Nenhum conteúdo corrigido recebido');
+        throw new Error('Nenhum conteúdo corrigido foi recebido');
       }
+
+      console.log('Conteúdo corrigido recebido:', data.correctedContent.substring(0, 100) + '...');
+      
+      setPostContent(data.correctedContent);
+      toast({
+        title: "Conteúdo corrigido!",
+        description: "O conteúdo foi revisado e corrigido pela IA",
+      });
       
     } catch (error) {
-      console.error('Error correcting content:', error);
+      console.error('Erro na correção de conteúdo:', error);
+      
+      let errorMessage = "Não foi possível corrigir o conteúdo. Tente novamente.";
+      
+      if (error.message.includes('OpenAI API key')) {
+        errorMessage = "Chave da API OpenAI não configurada. Entre em contato com o suporte.";
+      } else if (error.message.includes('Failed to correct content')) {
+        errorMessage = "Erro na API de correção. Verifique sua conexão e tente novamente.";
+      }
+      
       toast({
         title: "Erro na correção",
-        description: "Não foi possível corrigir o conteúdo. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
