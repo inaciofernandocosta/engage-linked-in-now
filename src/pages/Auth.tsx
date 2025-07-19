@@ -91,20 +91,47 @@ const Auth = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     
-    const redirectUrl = `${window.location.origin}/`;
-    
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Força abertura em popup ao invés de iframe
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl
+          redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          // Força popup ao invés de redirect no iframe
+          skipBrowserRedirect: true
         }
       });
 
       if (error) {
+        console.error('Erro no login:', error.message);
         toast.error('Erro ao fazer login com Google');
+        return;
       }
-    } catch (error) {
+
+      // Abre popup manualmente
+      if (data?.url) {
+        const popup = window.open(
+          data.url,
+          'google-login',
+          'width=500,height=600,scrollbars=yes,resizable=yes,status=yes,location=yes'
+        );
+
+        // Monitora o popup
+        const checkPopup = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkPopup);
+            // Recarrega para pegar a nova sessão
+            window.location.reload();
+          }
+        }, 1000);
+      }
+      
+    } catch (err) {
+      console.error('Erro ao iniciar login:', err);
       toast.error('Erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);
