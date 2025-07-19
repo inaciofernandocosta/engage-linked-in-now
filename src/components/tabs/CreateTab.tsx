@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Bot, Upload, X, Send, Sparkles, Zap, Check, PenTool } from 'lucide-react';
 import LinkedInPreview from '../LinkedInPreview';
+import { useProfile } from '@/hooks/useProfile';
 
 interface CreateTabProps {
   postContent: string;
@@ -53,13 +54,25 @@ const CreateTab = ({
   const characterCount = postContent.length;
   const [instructions, setInstructions] = useState("");
   const instructionCount = instructions.length;
+  const { profile, getFullName, getAvatarUrl } = useProfile();
   
-  // Estado para perfil do usuário
+  // Estado para perfil do usuário (local state para edição)
   const [userProfile, setUserProfile] = useState({
     avatar: "",
     name: "Seu Nome",
     title: "Desenvolvedor Full Stack | Especialista em React e Node.js"
   });
+
+  // Atualizar perfil local quando os dados do banco carregarem
+  useEffect(() => {
+    if (profile) {
+      setUserProfile({
+        avatar: getAvatarUrl() || "",
+        name: getFullName(),
+        title: profile.job_title || "Desenvolvedor Full Stack | Especialista em React e Node.js"
+      });
+    }
+  }, [profile, getFullName, getAvatarUrl]);
 
   const aiSizeOptions = [
     { value: 'short', label: 'Curto', desc: '300-500' },
