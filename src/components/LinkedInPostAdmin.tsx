@@ -6,6 +6,8 @@ import HomeTab from './tabs/HomeTab';
 import CreateTab from './tabs/CreateTab';
 import AnalyticsTab from './tabs/AnalyticsTab';
 import TemplatesTab from './tabs/TemplatesTab';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const LinkedInPostAdmin = () => {
   const [postContent, setPostContent] = useState('');
@@ -21,6 +23,7 @@ const LinkedInPostAdmin = () => {
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [currentStep, setCurrentStep] = useState('create');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const { toast } = useToast();
 
   // PWA Status Bar e Network Detection
   useEffect(() => {
@@ -62,23 +65,48 @@ Qual dessas dicas ressoa mais com sua experiência? Compartilhe nos comentários
   };
 
   const correctContent = async () => {
-    if (!postContent.trim()) return;
+    if (!postContent.trim()) {
+      toast({
+        title: "Erro",
+        description: "Não há conteúdo para corrigir",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsCorrecting(true);
     
     try {
-      // Aqui será integrada a API GPT para correção real
-      // Por enquanto, simula a correção sem alterar formatação
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('Calling correct-content function...');
       
-      // TODO: Implementar chamada real para GPT
-      // const correctedContent = await callGPTCorrection(postContent);
-      
-      // Por enquanto, mantém o conteúdo original (sem correções visuais)
-      console.log('Conteúdo revisado pela IA (sem alterações na formatação)');
+      const { data, error } = await supabase.functions.invoke('correct-content', {
+        body: { content: postContent }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to correct content');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.correctedContent) {
+        setPostContent(data.correctedContent);
+        toast({
+          title: "Conteúdo corrigido!",
+          description: "O conteúdo foi revisado e corrigido pela IA",
+        });
+      }
       
     } catch (error) {
-      console.error('Erro na correção:', error);
+      console.error('Error correcting content:', error);
+      toast({
+        title: "Erro na correção",
+        description: "Não foi possível corrigir o conteúdo. Tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsCorrecting(false);
     }
