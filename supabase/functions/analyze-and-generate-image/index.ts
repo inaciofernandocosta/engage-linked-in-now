@@ -94,12 +94,11 @@ Responda APENAS com o prompt em inglês, sem explicações adicionais.`
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-image-1',
+        model: 'dall-e-3',
         prompt: imagePrompt,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
-        response_format: 'b64_json'
+        quality: "standard"
       }),
     });
 
@@ -112,15 +111,15 @@ Responda APENAS com o prompt em inglês, sem explicações adicionais.`
     const imageData = await imageResponse.json();
     console.log('Imagem gerada com sucesso baseada no conteúdo');
 
-    if (!imageData.data || !imageData.data[0] || !imageData.data[0].b64_json) {
+    if (!imageData.data || !imageData.data[0] || !imageData.data[0].url) {
       throw new Error('Resposta inválida da API OpenAI para imagem');
     }
 
-    // Retorna a imagem em base64 junto com o prompt usado
+    // Retorna a URL da imagem junto com o prompt usado
     return new Response(
       JSON.stringify({ 
         success: true,
-        image: `data:image/png;base64,${imageData.data[0].b64_json}`,
+        image: imageData.data[0].url,
         prompt: imagePrompt,
         originalContent: postContent.substring(0, 100) + '...' // Preview do conteúdo
       }),
