@@ -35,8 +35,8 @@ const Header = () => {
   return (
     <header className="h-16 bg-background border-b border-border sticky top-0 z-50 px-4">
       <div className="h-full flex items-center justify-between max-w-sm mx-auto">
-        {/* Logo e Status */}
-        <div className="flex items-center gap-3">
+        {/* Logo e Status - Clicável para Home */}
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">in</span>
           </div>
@@ -46,7 +46,7 @@ const Header = () => {
           </div>
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           <span className="text-xs text-muted-foreground">{user?.email?.split('@')[0]}</span>
-        </div>
+        </Link>
 
         {/* User Dropdown */}
         <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
