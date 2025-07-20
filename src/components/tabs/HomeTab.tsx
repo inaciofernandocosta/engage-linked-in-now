@@ -13,7 +13,7 @@ const HomeTab = ({ setCurrentTab }: HomeTabProps) => {
     console.log('🧪 TESTANDO WEBHOOK DA APLICAÇÃO...');
     
     try {
-      const webhookUrl = "https://eolggenj5uzp8e0.m.pipedream.net";
+      const webhookUrl = "https://n8n-n8n-start.43ir9u.easypanel.host/webhook/instagran";
       const testPayload = {
         post_id: "TESTE-UNICO-" + Date.now(),
         content: "🎯 TESTE IDENTIFICÁVEL - " + new Date().toLocaleString() + " - WEBHOOK ID: " + Math.random().toString(36).substr(2, 9),
