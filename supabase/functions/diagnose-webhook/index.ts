@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const webhookUrl = "https://eo6y8yafmyxp7kj.m.pipedream.net";
+    const webhookUrl = "https://n8n-n8n-start.43ir9u.easypanel.host/webhook/instagran";
     
     // Teste 1: Verificar se o endpoint responde
     console.log('=== TESTE 1: Verificando se endpoint responde ===');

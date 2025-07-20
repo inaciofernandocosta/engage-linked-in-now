@@ -30,7 +30,7 @@ serve(async (req) => {
       .insert({
         user_id: '550e8400-e29b-41d4-a716-446655440000',
         content: '🧪 TESTE DIRETO SEM JWT - ' + new Date().toISOString() + ' - Este post deve gerar webhook!',
-        webhook_url: 'https://eolggenj5uzp8e0.m.pipedream.net'
+        webhook_url: 'https://n8n-n8n-start.43ir9u.easypanel.host/webhook/instagran'
       })
       .select()
       .single();

@@ -206,7 +206,7 @@ const LinkedInPostAdmin = () => {
     
     try {
       const imageUrl = images.length > 0 ? images[0].url : null;
-      const webhookUrl = "https://eolggenj5uzp8e0.m.pipedream.net";
+      const webhookUrl = "https://n8n-n8n-start.43ir9u.easypanel.host/webhook/instagran";
 
       console.log('=== DADOS PARA ENVIAR ===');
       console.log('- Content length:', postContent.length);
