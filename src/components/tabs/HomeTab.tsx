@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, BarChart3, Check, FileText, Calendar, Webhook } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HomeTabProps {
   setCurrentTab: (tab: string) => void;
@@ -10,42 +11,37 @@ const HomeTab = ({ setCurrentTab }: HomeTabProps) => {
   const { toast } = useToast();
 
   const testWebhook = async () => {
-    console.log('🧪 TESTANDO WEBHOOK DA APLICAÇÃO...');
+    console.log('🧪 TESTANDO WEBHOOK VIA SUPABASE...');
     
     try {
-      const webhookUrl = "https://n8n-n8n-start.43ir9u.easypanel.host/webhook/instagran";
-      const testPayload = {
-        post_id: "TESTE-UNICO-" + Date.now(),
-        content: "🎯 TESTE IDENTIFICÁVEL - " + new Date().toLocaleString() + " - WEBHOOK ID: " + Math.random().toString(36).substr(2, 9),
-        image_url: null,
-        published_at: new Date().toISOString(),
-        user_id: "fernando-costa-teste",
-        teste_especial: true,
-        timestamp_unico: Date.now()
-      };
-      
-      console.log('Enviando para:', webhookUrl);
-      console.log('Payload:', testPayload);
-      
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testPayload),
+      toast({
+        title: "🧪 Testando Webhook",
+        description: "Enviando teste via Supabase...",
       });
+
+      const { data, error } = await supabase.functions.invoke('test-webhook');
       
-      if (response.ok) {
-        console.log('✅ Webhook teste enviado com sucesso!');
-        toast({
-          title: "✅ Teste Webhook Enviado!",
-          description: "Verifique o n8n para confirmar o recebimento",
-        });
-      } else {
-        console.error('❌ Webhook teste falhou:', response.status);
+      if (error) {
+        console.error('❌ Erro no teste webhook:', error);
         toast({
           title: "❌ Erro no Webhook",
-          description: `Falha no envio: ${response.status}`,
+          description: error.message || "Erro ao testar webhook",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Resposta do teste:', data);
+      
+      if (data?.success) {
+        toast({
+          title: "✅ Teste Webhook Enviado!",
+          description: `Status: ${data.webhook_status} - Verifique o n8n para confirmar`,
+        });
+      } else {
+        toast({
+          title: "⚠️ Webhook Respondeu",
+          description: data?.message || "Webhook respondeu com erro",
           variant: "destructive",
         });
       }
@@ -53,7 +49,7 @@ const HomeTab = ({ setCurrentTab }: HomeTabProps) => {
       console.error('❌ Erro no teste webhook:', error);
       toast({
         title: "❌ Erro no Webhook",
-        description: "Erro de conexão",
+        description: "Erro de conexão com o Supabase",
         variant: "destructive",
       });
     }
