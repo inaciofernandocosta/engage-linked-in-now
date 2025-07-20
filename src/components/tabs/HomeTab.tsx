@@ -15,11 +15,13 @@ const HomeTab = ({ setCurrentTab }: HomeTabProps) => {
     try {
       const webhookUrl = "https://eolggenj5uzp8e0.m.pipedream.net";
       const testPayload = {
-        post_id: "test-app-" + Date.now(),
-        content: "🧪 TESTE DIRETO DA APLICAÇÃO WEB - " + new Date().toLocaleString() + " - Este deve aparecer no Pipedream!",
+        post_id: "TESTE-UNICO-" + Date.now(),
+        content: "🎯 TESTE IDENTIFICÁVEL - " + new Date().toLocaleString() + " - WEBHOOK ID: " + Math.random().toString(36).substr(2, 9),
         image_url: null,
         published_at: new Date().toISOString(),
-        user_id: "test-user-app"
+        user_id: "fernando-costa-teste",
+        teste_especial: true,
+        timestamp_unico: Date.now()
       };
       
       console.log('Enviando para:', webhookUrl);
