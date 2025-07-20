@@ -120,10 +120,12 @@ serve(async (req) => {
       post_id,
       content,
       image_url, // manter para compatibilidade
-      data: imageData, // dados binários para LinkedIn
+      data: imageData, // dados binários para LinkedIn (alterado de image_data para data)
       published_at,
       user_id
     };
+
+    console.log(`[${execution_id}] Campo alterado para 'data' (v2):`, imageData ? 'Imagem presente' : 'Sem imagem');
 
     console.log(`[${execution_id}] === CHAMANDO WEBHOOK ===`);
     console.log(`[${execution_id}] URL:`, webhook_url);
