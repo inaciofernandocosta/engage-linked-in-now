@@ -11,17 +11,35 @@ const convertUrlToBase64 = async (url: string): Promise<string | null> => {
   try {
     console.log('Baixando imagem via Deno fetch:', url.substring(0, 50) + '...');
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Supabase-Function/1.0)'
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status}`);
+      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
     }
     
     const arrayBuffer = await response.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    console.log('ArrayBuffer size:', arrayBuffer.byteLength);
+    
+    // Converter usando chunks para evitar stack overflow
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const chunkSize = 8192; // 8KB chunks
+    let binaryString = '';
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const base64 = btoa(binaryString);
     
     // Detectar tipo MIME da imagem
     const contentType = response.headers.get('content-type') || 'image/png';
     
+    console.log('Conversão concluída. Base64 length:', base64.length);
     return `data:${contentType};base64,${base64}`;
   } catch (error) {
     console.error('Erro ao converter URL para base64:', error);
