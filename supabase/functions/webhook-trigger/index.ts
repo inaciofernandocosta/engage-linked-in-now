@@ -120,7 +120,7 @@ serve(async (req) => {
       post_id,
       content,
       image_url, // manter para compatibilidade
-      image_data: imageData, // dados binários para LinkedIn
+      data: imageData, // dados binários para LinkedIn
       published_at,
       user_id
     };
