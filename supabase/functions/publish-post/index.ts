@@ -283,8 +283,12 @@ serve(async (req) => {
     console.log('POST INSERIDO COM SUCESSO:', insertedPost);
 
     // 7. Notificar webhook (se fornecido)
+    console.log('=== VERIFICAÇÃO WEBHOOK ===');
+    console.log('webhookUrl fornecido?:', !!webhookUrl);
+    console.log('webhookUrl valor:', webhookUrl);
+    
     if (webhookUrl) {
-      console.log('Notificando webhook...');
+      console.log('🚀 INICIANDO NOTIFICAÇÃO WEBHOOK...');
       
       const webhookPayload = {
         post_id: insertedPost.id,
@@ -300,16 +304,23 @@ serve(async (req) => {
       console.log('URL do webhook:', webhookUrl);
       
       try {
+        console.log('📡 FAZENDO CHAMADA PARA O WEBHOOK...');
         const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(webhookPayload),
         });
-        console.log('Webhook status:', webhookResponse.status);
-        console.log('Webhook chamado com sucesso');
+        
+        console.log('✅ Webhook response status:', webhookResponse.status);
+        console.log('✅ Webhook response text:', await webhookResponse.text());
+        console.log('✅ WEBHOOK ENVIADO COM SUCESSO!');
+        
       } catch (webhookError) {
-        console.error('Webhook falhou (não crítico):', webhookError);
+        console.error('❌ WEBHOOK FALHOU:', webhookError);
+        console.error('❌ Webhook error message:', webhookError.message);
       }
+    } else {
+      console.log('⚠️ WEBHOOK NÃO FORNECIDO - Pulando notificação');
     }
 
     console.log('=== SUCESSO TOTAL ===');
