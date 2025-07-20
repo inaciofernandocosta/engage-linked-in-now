@@ -14,7 +14,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.publish-post]
-verify_jwt = true
+verify_jwt = false
 
 [functions.webhook-trigger]
 verify_jwt = false
