@@ -70,7 +70,8 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error(`[${body?.execution_id || 'unknown'}] ❌ Erro ao chamar webhook:`, error);
+    const execution_id = 'unknown';
+    console.error(`[${execution_id}] ❌ Erro ao chamar webhook:`, error);
     
     return new Response(
       JSON.stringify({ 
