@@ -24,3 +24,6 @@ verify_jwt = false
 
 [functions.diagnose-webhook]
 verify_jwt = false
+
+[functions.test-post-webhook]
+verify_jwt = false
