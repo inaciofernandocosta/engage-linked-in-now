@@ -208,18 +208,24 @@ const LinkedInPostAdmin = () => {
       const imageUrl = images.length > 0 ? images[0].url : null;
       const webhookUrl = "https://eo6y8yafmyxp7kj.m.pipedream.net";
 
-      console.log('Dados para enviar:');
-      console.log('- Content:', postContent);
-      console.log('- ImageUrl:', imageUrl);
+      console.log('=== DADOS PARA ENVIAR ===');
+      console.log('- Content length:', postContent.length);
+      console.log('- Images array:', images);
+      console.log('- ImageUrl (primeiro 50 chars):', imageUrl ? imageUrl.substring(0, 50) + '...' : 'null');
+      console.log('- Tem imagem base64?:', imageUrl && imageUrl.startsWith('data:'));
       console.log('- WebhookUrl:', webhookUrl);
+
+      // Separar URL da imagem e dados base64
+      const hasImage = imageUrl && imageUrl.startsWith('data:');
+      const imageDataToSend = hasImage ? imageUrl : null;
 
       console.log('Chamando supabase.functions.invoke...');
       
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           content: postContent,
-          imageUrl: imageUrl,
-          imageBase64: imageUrl, // Enviando a imagem base64 para upload no storage
+          imageUrl: hasImage ? null : imageUrl, // URL externa (se não for base64)
+          imageBase64: imageDataToSend, // Dados base64 para upload
           webhookUrl: webhookUrl
         }
       });

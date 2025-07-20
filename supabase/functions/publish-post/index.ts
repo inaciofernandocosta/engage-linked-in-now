@@ -129,16 +129,28 @@ serve(async (req) => {
     let finalImageUrl = imageUrl;
     let imagePath = null;
     
-    if (imageBase64) {
+    console.log('=== PROCESSAMENTO DE IMAGEM ===');
+    console.log('imageBase64 presente?:', !!imageBase64);
+    console.log('imageBase64 length:', imageBase64 ? imageBase64.length : 0);
+    console.log('imageBase64 é base64?:', imageBase64 && imageBase64.startsWith('data:'));
+    
+    if (imageBase64 && imageBase64.startsWith('data:')) {
       console.log('Fazendo upload da imagem para storage...');
       try {
         // Converter base64 para blob
         const base64Data = imageBase64.split(',')[1]; // Remove data:image/...;base64,
+        if (!base64Data) {
+          throw new Error('Dados base64 inválidos - não foi possível extrair dados após vírgula');
+        }
+        
+        console.log('Base64 data length:', base64Data.length);
         const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        console.log('Image buffer created, length:', imageBuffer.length);
         
         // Gerar nome único para o arquivo
         const fileName = `${user.id}/${Date.now()}.jpg`;
         imagePath = fileName;
+        console.log('Upload filename:', fileName);
         
         // Upload para storage
         const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
@@ -152,6 +164,8 @@ serve(async (req) => {
           console.error('ERRO upload storage:', uploadError);
           throw new Error(`Falha no upload: ${uploadError.message}`);
         }
+        
+        console.log('Upload data:', uploadData);
         
         // Obter URL pública
         const { data: urlData } = supabaseAdmin.storage
@@ -171,6 +185,8 @@ serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+    } else {
+      console.log('Nenhuma imagem base64 para upload. Usando imageUrl externa:', finalImageUrl);
     }
 
     // 7. Inserir post
