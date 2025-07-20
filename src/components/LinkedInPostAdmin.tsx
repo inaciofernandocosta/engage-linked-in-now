@@ -212,20 +212,42 @@ const LinkedInPostAdmin = () => {
       console.log('- Content length:', postContent.length);
       console.log('- Images array:', images);
       console.log('- ImageUrl (primeiro 50 chars):', imageUrl ? imageUrl.substring(0, 50) + '...' : 'null');
-      console.log('- Tem imagem base64?:', imageUrl && imageUrl.startsWith('data:'));
       console.log('- WebhookUrl:', webhookUrl);
 
-      // Separar URL da imagem e dados base64
-      const hasImage = imageUrl && imageUrl.startsWith('data:');
-      const imageDataToSend = hasImage ? imageUrl : null;
+      let imageBase64ToSend = null;
+      
+      if (imageUrl) {
+        if (imageUrl.startsWith('data:')) {
+          // Já é base64
+          imageBase64ToSend = imageUrl;
+          console.log('- Imagem já em base64');
+        } else if (imageUrl.startsWith('http')) {
+          // É uma URL externa (OpenAI), precisa baixar e converter para base64
+          console.log('- Imagem é URL externa, convertendo para base64...');
+          try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const base64 = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(blob);
+            });
+            imageBase64ToSend = base64 as string;
+            console.log('- Conversão para base64 concluída');
+          } catch (error) {
+            console.error('Erro ao converter imagem para base64:', error);
+          }
+        }
+      }
 
+      console.log('- ImageBase64 preparado:', imageBase64ToSend ? 'SIM' : 'NÃO');
       console.log('Chamando supabase.functions.invoke...');
       
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           content: postContent,
-          imageUrl: hasImage ? null : imageUrl, // URL externa (se não for base64)
-          imageBase64: imageDataToSend, // Dados base64 para upload
+          imageUrl: null, // Sempre enviar null pois vamos sempre fazer upload
+          imageBase64: imageBase64ToSend, // Dados base64 para upload
           webhookUrl: webhookUrl
         }
       });
