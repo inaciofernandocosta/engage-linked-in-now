@@ -225,19 +225,28 @@ serve(async (req) => {
     // 7. Notificar webhook (se fornecido)
     if (webhookUrl) {
       console.log('Notificando webhook...');
+      
+      const webhookPayload = {
+        post_id: insertedPost.id,
+        content: content,
+        image_url: finalImageUrl,
+        published_at: insertedPost.published_at,
+        user_id: user.id
+      };
+      
+      console.log('=== PAYLOAD DO WEBHOOK ===');
+      console.log('Payload completo:', JSON.stringify(webhookPayload, null, 2));
+      console.log('Image URL sendo enviada:', finalImageUrl);
+      console.log('URL do webhook:', webhookUrl);
+      
       try {
         const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            post_id: insertedPost.id,
-            content: content,
-            image_url: finalImageUrl,
-            published_at: insertedPost.published_at,
-            user_id: user.id
-          }),
+          body: JSON.stringify(webhookPayload),
         });
         console.log('Webhook status:', webhookResponse.status);
+        console.log('Webhook chamado com sucesso');
       } catch (webhookError) {
         console.error('Webhook falhou (não crítico):', webhookError);
       }
