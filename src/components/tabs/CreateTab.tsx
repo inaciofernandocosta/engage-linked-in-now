@@ -162,7 +162,7 @@ const CreateTab = ({
             <Zap className="w-8 h-8 text-primary animate-pulse" />
           </div>
           <h3 className="text-lg font-semibold text-card-foreground mb-2">Processando</h3>
-          <p className="text-muted-foreground mb-4">Enviando para o Pipedream...</p>
+          <p className="text-muted-foreground mb-4">Enviando para o n8n...</p>
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>

@@ -39,7 +39,7 @@ const HomeTab = ({ setCurrentTab }: HomeTabProps) => {
         console.log('✅ Webhook teste enviado com sucesso!');
         toast({
           title: "✅ Teste Webhook Enviado!",
-          description: "Verifique o Pipedream para confirmar o recebimento",
+          description: "Verifique o n8n para confirmar o recebimento",
         });
       } else {
         console.error('❌ Webhook teste falhou:', response.status);
