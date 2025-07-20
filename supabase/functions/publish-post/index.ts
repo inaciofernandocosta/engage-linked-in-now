@@ -49,9 +49,10 @@ serve(async (req) => {
       );
     }
 
-    const { content, imageUrl, webhookUrl } = body;
+    const { content, imageUrl, imageBase64, webhookUrl } = body;
     console.log('Content:', content);
     console.log('ImageUrl:', imageUrl);
+    console.log('ImageBase64:', imageBase64 ? 'presente' : 'não presente');
     console.log('WebhookUrl:', webhookUrl);
 
     if (!content?.trim()) {
@@ -124,13 +125,61 @@ serve(async (req) => {
 
     console.log('Conexão admin OK');
 
-    // 6. Inserir post (versão simples primeiro)
+    // 6. Processar upload de imagem (se necessário)
+    let finalImageUrl = imageUrl;
+    let imagePath = null;
+    
+    if (imageBase64) {
+      console.log('Fazendo upload da imagem para storage...');
+      try {
+        // Converter base64 para blob
+        const base64Data = imageBase64.split(',')[1]; // Remove data:image/...;base64,
+        const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        
+        // Gerar nome único para o arquivo
+        const fileName = `${user.id}/${Date.now()}.jpg`;
+        imagePath = fileName;
+        
+        // Upload para storage
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+          .from('post-images')
+          .upload(fileName, imageBuffer, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
+          
+        if (uploadError) {
+          console.error('ERRO upload storage:', uploadError);
+          throw new Error(`Falha no upload: ${uploadError.message}`);
+        }
+        
+        // Obter URL pública
+        const { data: urlData } = supabaseAdmin.storage
+          .from('post-images')
+          .getPublicUrl(fileName);
+          
+        finalImageUrl = urlData.publicUrl;
+        console.log('Upload realizado com sucesso. URL:', finalImageUrl);
+        
+      } catch (uploadError) {
+        console.error('ERRO processamento imagem:', uploadError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Falha no upload da imagem', 
+            details: uploadError.message 
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // 7. Inserir post
     console.log('Inserindo post...');
     const postData = {
       user_id: user.id,
       content: content,
-      image_url: imageUrl || null,
-      image_storage_path: null,
+      image_url: finalImageUrl || null,
+      image_storage_path: imagePath,
       webhook_url: webhookUrl || null
     };
     
@@ -167,7 +216,7 @@ serve(async (req) => {
           body: JSON.stringify({
             post_id: insertedPost.id,
             content: content,
-            image_url: imageUrl,
+            image_url: finalImageUrl,
             published_at: insertedPost.published_at,
             user_id: user.id
           }),

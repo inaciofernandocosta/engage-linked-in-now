@@ -219,6 +219,7 @@ const LinkedInPostAdmin = () => {
         body: {
           content: postContent,
           imageUrl: imageUrl,
+          imageBase64: imageUrl, // Enviando a imagem base64 para upload no storage
           webhookUrl: webhookUrl
         }
       });
