@@ -52,7 +52,9 @@ serve(async (req) => {
     });
 
     console.log(`[${execution_id}] Webhook response status:`, webhookResponse.status);
-    console.log(`[${execution_id}] Webhook response text:`, await webhookResponse.text());
+    
+    const responseText = await webhookResponse.text();
+    console.log(`[${execution_id}] Webhook response text:`, responseText);
 
     if (!webhookResponse.ok) {
       throw new Error(`Webhook call failed: ${webhookResponse.status} ${webhookResponse.statusText}`);
