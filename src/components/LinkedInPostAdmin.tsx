@@ -214,40 +214,31 @@ const LinkedInPostAdmin = () => {
       console.log('- ImageUrl (primeiro 50 chars):', imageUrl ? imageUrl.substring(0, 50) + '...' : 'null');
       console.log('- WebhookUrl:', webhookUrl);
 
-      let imageBase64ToSend = null;
+      // Determinar dados da imagem para envio
+      let imageDataToSend = null;
+      let imageUrlToSend = null;
       
       if (imageUrl) {
         if (imageUrl.startsWith('data:')) {
-          // Já é base64
-          imageBase64ToSend = imageUrl;
-          console.log('- Imagem já em base64');
+          // Imagem já em base64 (upload manual) - enviar como base64
+          imageDataToSend = imageUrl;
+          console.log('- Imagem manual (base64) detectada');
         } else if (imageUrl.startsWith('http')) {
-          // É uma URL externa (OpenAI), precisa baixar e converter para base64
-          console.log('- Imagem é URL externa, convertendo para base64...');
-          try {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            const base64 = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(blob);
-            });
-            imageBase64ToSend = base64 as string;
-            console.log('- Conversão para base64 concluída');
-          } catch (error) {
-            console.error('Erro ao converter imagem para base64:', error);
-          }
+          // URL externa (gerada por IA) - enviar URL para backend processar
+          imageUrlToSend = imageUrl;
+          console.log('- URL externa (IA) detectada, backend irá processar');
         }
       }
 
-      console.log('- ImageBase64 preparado:', imageBase64ToSend ? 'SIM' : 'NÃO');
-      console.log('Chamando supabase.functions.invoke...');
+      console.log('- ImageBase64 preparado:', imageDataToSend ? 'SIM' : 'NÃO');
+      console.log('- ImageUrl externa preparada:', imageUrlToSend ? 'SIM' : 'NÃO');
+      console.log('Chamando Edge Function...');
       
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           content: postContent,
-          imageUrl: null, // Sempre enviar null pois vamos sempre fazer upload
-          imageBase64: imageBase64ToSend, // Dados base64 para upload
+          imageUrl: imageUrlToSend, // URL externa (IA) para backend processar
+          imageBase64: imageDataToSend, // Base64 direto (upload manual)
           webhookUrl: webhookUrl
         }
       });
@@ -275,10 +266,23 @@ const LinkedInPostAdmin = () => {
 
       if (data.success) {
         console.log('✅ Sucesso!');
+        
+        // Detalhes da publicação para o toast
+        const postDetails = data.post;
+        const hasImage = postDetails.image_url ? 'com imagem' : 'sem imagem';
+        
         toast({
-          title: "Post Publicado!",
-          description: "Post salvo no banco e webhook notificado com sucesso",
+          title: "Post Publicado com Sucesso!",
+          description: `Post ${hasImage} salvo no banco e webhook notificado`,
         });
+        
+        console.log('📝 Post salvo:', {
+          id: postDetails.id,
+          hasImage: !!postDetails.image_url,
+          imageUrl: postDetails.image_url,
+          webhookCalled: !!webhookUrl
+        });
+        
         setCurrentStep('approval');
       } else {
         console.error('❌ Success = false:', data);

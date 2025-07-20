@@ -6,6 +6,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Função auxiliar para converter URL em base64 no backend
+const convertUrlToBase64 = async (url: string): Promise<string | null> => {
+  try {
+    console.log('Baixando imagem via Deno fetch:', url.substring(0, 50) + '...');
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    // Detectar tipo MIME da imagem
+    const contentType = response.headers.get('content-type') || 'image/png';
+    
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('Erro ao converter URL para base64:', error);
+    return null;
+  }
+};
+
 serve(async (req) => {
   console.log('=== PUBLISH-POST INICIADO ===');
   console.log('Method:', req.method);
@@ -126,29 +149,51 @@ serve(async (req) => {
     console.log('Conexão admin OK');
 
     // 6. Processar upload de imagem (se necessário)
-    let finalImageUrl = imageUrl;
-    let imagePath = null;
+    let finalImageUrl: string | null = null;
+    let imagePath: string | null = null;
+    let processedBase64: string | null = imageBase64;
     
     console.log('=== PROCESSAMENTO DE IMAGEM ===');
     console.log('imageBase64 presente?:', !!imageBase64);
     console.log('imageBase64 length:', imageBase64 ? imageBase64.length : 0);
     console.log('imageBase64 é base64?:', imageBase64 && imageBase64.startsWith('data:'));
+    console.log('imageUrl presente?:', !!imageUrl);
+
+    // Se há uma URL de imagem mas não base64, converter URL para base64
+    if (imageUrl && !imageBase64) {
+      console.log('Convertendo URL para base64 no backend...');
+      processedBase64 = await convertUrlToBase64(imageUrl);
+      
+      if (!processedBase64) {
+        console.log('Falha na conversão URL->base64, continuando sem imagem');
+      } else {
+        console.log('Conversão URL->base64 realizada com sucesso');
+      }
+    }
     
-    if (imageBase64 && imageBase64.startsWith('data:')) {
+    if (processedBase64 && processedBase64.startsWith('data:')) {
       console.log('Fazendo upload da imagem para storage...');
       try {
-        // Converter base64 para blob
-        const base64Data = imageBase64.split(',')[1]; // Remove data:image/...;base64,
+        // Extrair dados base64 e tipo MIME
+        const [header, base64Data] = processedBase64.split(',');
         if (!base64Data) {
           throw new Error('Dados base64 inválidos - não foi possível extrair dados após vírgula');
         }
         
+        const mimeMatch = header.match(/data:([^;]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+        const extension = mimeType.includes('jpeg') ? 'jpg' : 
+                         mimeType.includes('png') ? 'png' : 
+                         mimeType.includes('webp') ? 'webp' : 'jpg';
+        
         console.log('Base64 data length:', base64Data.length);
+        console.log('MIME type detected:', mimeType);
+        
         const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
         console.log('Image buffer created, length:', imageBuffer.length);
         
         // Gerar nome único para o arquivo
-        const fileName = `${user.id}/${Date.now()}.jpg`;
+        const fileName = `${user.id}/${Date.now()}.${extension}`;
         imagePath = fileName;
         console.log('Upload filename:', fileName);
         
@@ -156,7 +201,7 @@ serve(async (req) => {
         const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
           .from('post-images')
           .upload(fileName, imageBuffer, {
-            contentType: 'image/jpeg',
+            contentType: mimeType,
             upsert: false
           });
           
@@ -177,16 +222,13 @@ serve(async (req) => {
         
       } catch (uploadError) {
         console.error('ERRO processamento imagem:', uploadError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Falha no upload da imagem', 
-            details: uploadError.message 
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // Continuar sem imagem se upload falhar, não retornar erro
+        console.log('Continuando sem imagem devido ao erro de upload');
+        finalImageUrl = null;
+        imagePath = null;
       }
     } else {
-      console.log('Nenhuma imagem base64 para upload. Usando imageUrl externa:', finalImageUrl);
+      console.log('Nenhuma imagem para processar');
     }
 
     // 7. Inserir post
