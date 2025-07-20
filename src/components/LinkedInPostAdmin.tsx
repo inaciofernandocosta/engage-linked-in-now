@@ -206,7 +206,7 @@ const LinkedInPostAdmin = () => {
     
     try {
       const imageUrl = images.length > 0 ? images[0].url : null;
-      const webhookUrl = "https://eo6y8yafmyxp7kj.m.pipedream.net";
+      const webhookUrl = "https://eolggenj5uzp8e0.m.pipedream.net";
 
       console.log('=== DADOS PARA ENVIAR ===');
       console.log('- Content length:', postContent.length);
