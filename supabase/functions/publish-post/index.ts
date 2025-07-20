@@ -290,10 +290,31 @@ serve(async (req) => {
     if (webhookUrl) {
       console.log('🚀 INICIANDO NOTIFICAÇÃO WEBHOOK...');
       
+      // Preparar dados da imagem para LinkedIn (binário em vez de URL)
+      let imageData = null;
+      if (processedBase64 && processedBase64.startsWith('data:')) {
+        const [header, base64Data] = processedBase64.split(',');
+        const mimeMatch = header.match(/data:([^;]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+        
+        imageData = {
+          content: base64Data, // dados binários em base64
+          contentType: mimeType,
+          filename: `post_image_${insertedPost.id}.${mimeType.includes('jpeg') ? 'jpg' : mimeType.includes('png') ? 'png' : 'jpg'}`
+        };
+        
+        console.log('Imagem preparada para LinkedIn:', {
+          contentType: imageData.contentType,
+          filename: imageData.filename,
+          contentLength: imageData.content.length
+        });
+      }
+      
       const webhookPayload = {
         post_id: insertedPost.id,
         content: content,
-        image_url: finalImageUrl,
+        image_url: finalImageUrl, // manter para compatibilidade
+        image_data: imageData, // dados binários para LinkedIn
         published_at: insertedPost.published_at,
         user_id: user.id
       };
