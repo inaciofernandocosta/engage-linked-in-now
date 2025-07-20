@@ -16,12 +16,13 @@ serve(async (req) => {
   try {
     // Parse do body
     const body = await req.json();
-    console.log('Received payload:', body);
+    const execution_id = body.execution_id || 'unknown';
+    console.log(`[${execution_id}] Received payload:`, body);
     
     const { post_id, content, image_url, published_at, user_id, webhook_url } = body;
 
     if (!webhook_url) {
-      console.log('Nenhum webhook_url fornecido');
+      console.log(`[${execution_id}] Nenhum webhook_url fornecido`);
       return new Response(
         JSON.stringify({ success: false, error: 'webhook_url é obrigatório' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -37,9 +38,9 @@ serve(async (req) => {
       user_id
     };
 
-    console.log('=== CHAMANDO WEBHOOK ===');
-    console.log('URL:', webhook_url);
-    console.log('Payload:', JSON.stringify(webhookPayload, null, 2));
+    console.log(`[${execution_id}] === CHAMANDO WEBHOOK ===`);
+    console.log(`[${execution_id}] URL:`, webhook_url);
+    console.log(`[${execution_id}] Payload:`, JSON.stringify(webhookPayload, null, 2));
 
     // Chamar o webhook
     const webhookResponse = await fetch(webhook_url, {
@@ -50,14 +51,14 @@ serve(async (req) => {
       body: JSON.stringify(webhookPayload),
     });
 
-    console.log('Webhook response status:', webhookResponse.status);
-    console.log('Webhook response text:', await webhookResponse.text());
+    console.log(`[${execution_id}] Webhook response status:`, webhookResponse.status);
+    console.log(`[${execution_id}] Webhook response text:`, await webhookResponse.text());
 
     if (!webhookResponse.ok) {
       throw new Error(`Webhook call failed: ${webhookResponse.status} ${webhookResponse.statusText}`);
     }
 
-    console.log('✅ Webhook chamado com sucesso!');
+    console.log(`[${execution_id}] ✅ Webhook chamado com sucesso!`);
     
     return new Response(
       JSON.stringify({ 
@@ -69,7 +70,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Erro ao chamar webhook:', error);
+    console.error(`[${body?.execution_id || 'unknown'}] ❌ Erro ao chamar webhook:`, error);
     
     return new Response(
       JSON.stringify({ 
