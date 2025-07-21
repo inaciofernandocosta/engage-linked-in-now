@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -249,14 +250,14 @@ serve(async (req) => {
       console.log('Nenhuma imagem para processar');
     }
 
-    // 7. Inserir post
+    // 7. Inserir post (SEM LÓGICA DE WEBHOOK)
     console.log('Inserindo post...');
     const postData = {
       user_id: user.id,
       content: content,
       image_url: finalImageUrl || null,
       image_storage_path: imagePath,
-      webhook_url: webhookUrl || null
+      webhook_url: webhookUrl || null // Salvar webhook_url para que o trigger possa usar
     };
     
     console.log('Dados a inserir:', postData);
@@ -282,74 +283,17 @@ serve(async (req) => {
 
     console.log('POST INSERIDO COM SUCESSO:', insertedPost);
 
-    // 7. Notificar webhook (se fornecido)
-    console.log('=== VERIFICAÇÃO WEBHOOK ===');
-    console.log('webhookUrl fornecido?:', !!webhookUrl);
-    console.log('webhookUrl valor:', webhookUrl);
-    
-    if (webhookUrl) {
-      console.log('🚀 INICIANDO NOTIFICAÇÃO WEBHOOK...');
-      
-      // Preparar dados da imagem para LinkedIn (binário em vez de URL)
-      let imageData = null;
-      if (processedBase64 && processedBase64.startsWith('data:')) {
-        const [header, base64Data] = processedBase64.split(',');
-        const mimeMatch = header.match(/data:([^;]+)/);
-        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
-        
-        imageData = {
-          content: base64Data, // dados binários em base64
-          contentType: mimeType,
-          filename: `post_image_${insertedPost.id}.${mimeType.includes('jpeg') ? 'jpg' : mimeType.includes('png') ? 'png' : 'jpg'}`
-        };
-        
-        console.log('Imagem preparada para LinkedIn:', {
-          contentType: imageData.contentType,
-          filename: imageData.filename,
-          contentLength: imageData.content.length
-        });
-      }
-      
-      const webhookPayload = {
-        post_id: insertedPost.id,
-        content: content,
-        image_url: finalImageUrl, // manter para compatibilidade
-        image_data: imageData, // dados binários para LinkedIn
-        published_at: insertedPost.published_at,
-        user_id: user.id
-      };
-      
-      console.log('=== PAYLOAD DO WEBHOOK ===');
-      console.log('Payload completo:', JSON.stringify(webhookPayload, null, 2));
-      console.log('Image URL sendo enviada:', finalImageUrl);
-      console.log('URL do webhook:', webhookUrl);
-      
-      try {
-        console.log('📡 FAZENDO CHAMADA PARA O WEBHOOK...');
-        const webhookResponse = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(webhookPayload),
-        });
-        
-        console.log('✅ Webhook response status:', webhookResponse.status);
-        console.log('✅ Webhook response text:', await webhookResponse.text());
-        console.log('✅ WEBHOOK ENVIADO COM SUCESSO!');
-        
-      } catch (webhookError) {
-        console.error('❌ WEBHOOK FALHOU:', webhookError);
-        console.error('❌ Webhook error message:', webhookError.message);
-      }
-    } else {
-      console.log('⚠️ WEBHOOK NÃO FORNECIDO - Pulando notificação');
-    }
+    // WEBHOOK REMOVIDO - Agora é responsabilidade do trigger do banco de dados
+    console.log('=== WEBHOOK SERÁ PROCESSADO PELO TRIGGER DO BANCO ===');
+    console.log('Webhook URL salvo no post:', webhookUrl);
+    console.log('Trigger do banco irá processar o webhook automaticamente');
 
     console.log('=== SUCESSO TOTAL ===');
     return new Response(
       JSON.stringify({ 
         success: true, 
         post: insertedPost,
-        message: 'Post publicado!' 
+        message: 'Post publicado! Webhook será processado pelo trigger do banco.' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
