@@ -22,6 +22,8 @@ export type Database = {
           image_storage_path: string | null
           image_url: string | null
           published_at: string
+          scheduled_for: string | null
+          status: string | null
           updated_at: string
           user_id: string
           webhook_url: string | null
@@ -33,6 +35,8 @@ export type Database = {
           image_storage_path?: string | null
           image_url?: string | null
           published_at?: string
+          scheduled_for?: string | null
+          status?: string | null
           updated_at?: string
           user_id: string
           webhook_url?: string | null
@@ -44,6 +48,8 @@ export type Database = {
           image_storage_path?: string | null
           image_url?: string | null
           published_at?: string
+          scheduled_for?: string | null
+          status?: string | null
           updated_at?: string
           user_id?: string
           webhook_url?: string | null
@@ -91,7 +97,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      approve_scheduled_posts: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
