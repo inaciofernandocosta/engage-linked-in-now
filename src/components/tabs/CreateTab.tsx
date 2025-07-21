@@ -161,8 +161,8 @@ const CreateTab = ({
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Zap className="w-8 h-8 text-primary animate-pulse" />
           </div>
-          <h3 className="text-lg font-semibold text-card-foreground mb-2">Processando</h3>
-          <p className="text-muted-foreground mb-4">Enviando para o n8n...</p>
+          <h3 className="text-lg font-semibold text-card-foreground mb-2">Salvando Post</h3>
+          <p className="text-muted-foreground mb-4">Salvando como pendente...</p>
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
@@ -176,8 +176,8 @@ const CreateTab = ({
           <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-success" />
           </div>
-          <h3 className="text-lg font-semibold text-card-foreground mb-2">Pronto!</h3>
-          <p className="text-muted-foreground mb-6">Post processado e aguardando aprovação.</p>
+          <h3 className="text-lg font-semibold text-card-foreground mb-2">Post Salvo!</h3>
+          <p className="text-muted-foreground mb-6">Post salvo como pendente. Gerencie na aba Publicações ou aprove agora.</p>
           
           <div className="space-y-3">
             <button 
@@ -465,7 +465,7 @@ const CreateTab = ({
               className="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Send className="w-4 h-4" />
-              <span>Publicar</span>
+              <span>Salvar como Pendente</span>
             </button>
           </div>
         </div>

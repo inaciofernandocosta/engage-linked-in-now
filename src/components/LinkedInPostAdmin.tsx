@@ -5,7 +5,7 @@ import BottomNavigation from './BottomNavigation';
 import HomeTab from './tabs/HomeTab';
 import CreateTab from './tabs/CreateTab';
 import AnalyticsTab from './tabs/AnalyticsTab';
-import TemplatesTab from './tabs/TemplatesTab';
+import Publications from '../pages/Publications';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -191,7 +191,7 @@ const LinkedInPostAdmin = () => {
   };
 
   const sendToWebhook = async () => {
-    console.log('=== INICIANDO PUBLICAÇÃO ===');
+    console.log('=== SALVANDO POST COMO PENDENTE ===');
     
     if (!postContent.trim()) {
       toast({
@@ -208,7 +208,7 @@ const LinkedInPostAdmin = () => {
       const imageUrl = images.length > 0 ? images[0].url : null;
       const webhookUrl = "https://n8n-n8n-start.43ir9u.easypanel.host/webhook/instagran";
 
-      console.log('=== DADOS PARA ENVIAR ===');
+      console.log('=== DADOS PARA SALVAR ===');
       console.log('- Content length:', postContent.length);
       console.log('- Images array:', images);
       console.log('- ImageUrl (primeiro 50 chars):', imageUrl ? imageUrl.substring(0, 50) + '...' : 'null');
@@ -232,14 +232,15 @@ const LinkedInPostAdmin = () => {
 
       console.log('- ImageBase64 preparado:', imageDataToSend ? 'SIM' : 'NÃO');
       console.log('- ImageUrl externa preparada:', imageUrlToSend ? 'SIM' : 'NÃO');
-      console.log('Chamando Edge Function...');
+      console.log('Salvando post como pendente...');
       
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           content: postContent,
           imageUrl: imageUrlToSend, // URL externa (IA) para backend processar
           imageBase64: imageDataToSend, // Base64 direto (upload manual)
-          webhookUrl: webhookUrl
+          webhookUrl: webhookUrl,
+          status: 'pending' // Salvar como pendente
         }
       });
 
@@ -272,15 +273,15 @@ const LinkedInPostAdmin = () => {
         const hasImage = postDetails.image_url ? 'com imagem' : 'sem imagem';
         
         toast({
-          title: "Post Publicado com Sucesso!",
-          description: `Post ${hasImage} salvo no banco e webhook notificado`,
+          title: "Post Salvo como Pendente!",
+          description: `Post ${hasImage} salvo e aguardando aprovação ou agendamento`,
         });
         
-        console.log('📝 Post salvo:', {
+        console.log('📝 Post salvo como pendente:', {
           id: postDetails.id,
           hasImage: !!postDetails.image_url,
           imageUrl: postDetails.image_url,
-          webhookCalled: !!webhookUrl
+          status: 'pending'
         });
         
         setCurrentStep('approval');
@@ -341,8 +342,8 @@ const LinkedInPostAdmin = () => {
         );
       case 'analytics':
         return <AnalyticsTab />;
-      case 'templates':
-        return <TemplatesTab />;
+      case 'publications':
+        return <Publications />;
       default:
         return <HomeTab setCurrentTab={setCurrentTab} />;
     }

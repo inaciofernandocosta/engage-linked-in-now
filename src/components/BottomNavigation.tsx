@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Plus, BarChart3, FileText } from 'lucide-react';
+import { Home, Plus, BarChart3, Calendar } from 'lucide-react';
 
 interface BottomNavigationProps {
   currentTab: string;
@@ -11,7 +11,7 @@ const BottomNavigation = ({ currentTab, setCurrentTab }: BottomNavigationProps) 
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'create', icon: Plus, label: 'Criar' },
     { id: 'analytics', icon: BarChart3, label: 'Dados' },
-    { id: 'templates', icon: FileText, label: 'Templates' },
+    { id: 'publications', icon: Calendar, label: 'Publicações' },
   ];
 
   return (

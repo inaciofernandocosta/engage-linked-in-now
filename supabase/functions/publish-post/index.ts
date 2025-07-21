@@ -91,11 +91,12 @@ serve(async (req) => {
       );
     }
 
-    const { content, imageUrl, imageBase64, webhookUrl } = body;
+    const { content, imageUrl, imageBase64, webhookUrl, status } = body;
     console.log('Content:', content);
     console.log('ImageUrl:', imageUrl);
     console.log('ImageBase64:', imageBase64 ? 'presente' : 'não presente');
     console.log('WebhookUrl:', webhookUrl);
+    console.log('Status:', status || 'não especificado (default: pending)');
 
     if (!content?.trim()) {
       console.error('ERRO: Conteúdo vazio');
@@ -250,14 +251,15 @@ serve(async (req) => {
       console.log('Nenhuma imagem para processar');
     }
 
-    // 7. Inserir post (SEM LÓGICA DE WEBHOOK)
+    // 7. Inserir post com status especificado
     console.log('Inserindo post...');
     const postData = {
       user_id: user.id,
       content: content,
       image_url: finalImageUrl || null,
       image_storage_path: imagePath,
-      webhook_url: webhookUrl || null // Salvar webhook_url para que o trigger possa usar
+      webhook_url: webhookUrl || null, // Salvar webhook_url para que o trigger possa usar
+      status: status || 'pending' // Default para pending se não especificado
     };
     
     console.log('Dados a inserir:', postData);
