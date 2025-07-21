@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Calendar, Clock, Check, X, MoreVertical, Image, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { usePosts } from '@/hooks/usePosts';
 
 interface Post {
   id: string;
@@ -27,139 +25,26 @@ interface Post {
 }
 
 const Publications = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
-  const { toast } = useToast();
-  const { user } = useAuth();
+  
+  const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost } = usePosts();
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const fetchPosts = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPosts(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar posts:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as publicações",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const approvePost = async (postId: string) => {
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .update({ status: 'approved' })
-        .eq('id', postId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Post Aprovado!",
-        description: "O post foi aprovado e será publicado imediatamente",
-      });
-
-      fetchPosts();
-    } catch (error) {
-      console.error('Erro ao aprovar post:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível aprovar o post",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const schedulePost = async (postId: string) => {
+  const handleSchedulePost = async (postId: string) => {
     if (!scheduleDate || !scheduleTime) {
-      toast({
-        title: "Erro",
-        description: "Selecione uma data e hora para agendamento",
-        variant: "destructive",
-      });
       return;
     }
 
     const scheduledFor = new Date(`${scheduleDate}T${scheduleTime}`);
+    const success = await schedulePostHook(postId, scheduledFor);
     
-    if (scheduledFor <= new Date()) {
-      toast({
-        title: "Erro",
-        description: "A data de agendamento deve ser no futuro",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .update({ scheduled_for: scheduledFor.toISOString() })
-        .eq('id', postId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Post Agendado!",
-        description: `Post agendado para ${scheduledFor.toLocaleString('pt-BR')}`,
-      });
-
+    if (success) {
       setIsScheduleDialogOpen(false);
       setScheduleDate('');
       setScheduleTime('');
       setSelectedPost(null);
-      fetchPosts();
-    } catch (error) {
-      console.error('Erro ao agendar post:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível agendar o post",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deletePost = async (postId: string) => {
-    try {
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', postId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Post Excluído",
-        description: "O post foi excluído com sucesso",
-      });
-
-      fetchPosts();
-    } catch (error) {
-      console.error('Erro ao excluir post:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir o post",
-        variant: "destructive",
-      });
     }
   };
 
@@ -438,7 +323,7 @@ const Publications = () => {
                 Cancelar
               </Button>
               <Button
-                onClick={() => selectedPost && schedulePost(selectedPost.id)}
+                onClick={() => selectedPost && handleSchedulePost(selectedPost.id)}
               >
                 Agendar
               </Button>
