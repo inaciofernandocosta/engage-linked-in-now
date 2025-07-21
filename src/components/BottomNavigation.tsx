@@ -15,18 +15,20 @@ const BottomNavigation = ({ currentTab, setCurrentTab }: BottomNavigationProps) 
   ];
 
   return (
-    <nav className="bg-card border-t border fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-sm">
-      <div className="flex justify-around px-4 py-2">
+    <nav className="bg-white border-t border-border fixed bottom-0 left-0 right-0 z-40 shadow-linkedin">
+      <div className="flex justify-around px-4 py-2 max-w-md mx-auto">
         {tabs.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             onClick={() => setCurrentTab(id)}
-            className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-              currentTab === id ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+            className={`flex flex-col items-center py-1.5 px-3 rounded-lg transition-all duration-150 ${
+              currentTab === id 
+                ? 'text-primary bg-primary/10' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
           >
             <Icon className="w-5 h-5" />
-            <span className="text-xs mt-1">{label}</span>
+            <span className="text-xs mt-0.5 font-medium">{label}</span>
           </button>
         ))}
       </div>

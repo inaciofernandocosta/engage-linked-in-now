@@ -11,7 +11,7 @@ const PWAStatusBar = ({ isOnline }: PWAStatusBarProps) => {
         <span className="font-medium">9:41</span>
       </div>
       <div className="flex items-center space-x-1">
-        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-red-400'}`}></div>
+        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-destructive'}`}></div>
         <span>📶</span>
         <span>🔋 85%</span>
       </div>

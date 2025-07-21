@@ -351,7 +351,7 @@ const LinkedInPostAdmin = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Main Content */}
-      <main className="max-w-feed mx-auto px-4 py-6">
+      <main className="max-w-md mx-auto px-4 py-6 pb-20">
         {renderTabContent()}
       </main>
 

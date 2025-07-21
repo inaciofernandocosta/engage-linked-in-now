@@ -57,7 +57,7 @@ const HomeTab = ({ setCurrentTab }: HomeTabProps) => {
 
   return (
     <div className="p-4 space-y-4">
-      <div className="bg-gradient-to-r from-primary to-purple-600 rounded-2xl p-6 text-primary-foreground">
+      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
         <h2 className="text-xl font-bold mb-2">🚀 Publique com IA</h2>
         <p className="text-primary-foreground/80 mb-4">Crie posts profissionais em segundos</p>
         <button 
@@ -100,10 +100,10 @@ const HomeTab = ({ setCurrentTab }: HomeTabProps) => {
           </button>
           <button 
             onClick={testWebhook}
-            className="w-full text-left p-3 rounded-lg hover:bg-muted flex items-center space-x-3 bg-orange-50 border border-orange-200"
+            className="w-full text-left p-3 rounded-lg hover:bg-muted flex items-center space-x-3 bg-primary/5 border border-primary/20"
           >
-            <Webhook className="w-5 h-5 text-orange-600" />
-            <span className="text-orange-600 font-medium">🧪 Testar Webhook</span>
+            <Webhook className="w-5 h-5 text-primary" />
+            <span className="text-primary font-medium">🧪 Testar Webhook</span>
           </button>
         </div>
       </div>

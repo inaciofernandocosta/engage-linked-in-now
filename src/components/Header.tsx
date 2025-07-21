@@ -26,19 +26,17 @@ const Header = () => {
   };
 
   return (
-    <header className="h-14 bg-card border-b border-border sticky top-0 z-50 px-4 shadow-linkedin">
+    <header className="h-12 bg-primary border-b border-primary-foreground/10 sticky top-0 z-50 px-4 shadow-linkedin">
       <div className="h-full flex items-center justify-between max-w-6xl mx-auto">
         {/* Logo e Status - Clicável para Home */}
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-all duration-150">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">in</span>
+        <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-all duration-150">
+          <div className="w-7 h-7 bg-white rounded-sm flex items-center justify-center">
+            <span className="text-primary font-bold text-sm">in</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-foreground">LinkedIn</span>
-            <span className="text-sm font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">AI</span>
+          <div className="flex items-center gap-1">
+            <span className="text-base font-medium text-white hidden sm:block">LinkedIn</span>
+            <span className="text-xs font-medium text-white bg-white/20 px-1.5 py-0.5 rounded">AI</span>
           </div>
-          <div className="w-2 h-2 bg-success rounded-full"></div>
-          <span className="text-xs text-muted-foreground hidden sm:block">{user?.email?.split('@')[0]}</span>
         </Link>
 
         {/* User Dropdown */}
@@ -46,15 +44,15 @@ const Header = () => {
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
-              className="flex items-center gap-2 hover:bg-muted/50 px-2 py-1 h-auto"
+              className="flex items-center gap-2 hover:bg-white/10 px-2 py-1 h-auto text-white"
             >
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-7 w-7">
                 <AvatarImage src={getAvatarUrl() || undefined} />
-                <AvatarFallback className="text-xs bg-blue-600 text-white">
+                <AvatarFallback className="text-xs bg-white text-primary">
                   {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">Eu</span>
+              <span className="text-sm font-medium hidden sm:block">Eu</span>
               <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </Button>
           </DropdownMenuTrigger>
