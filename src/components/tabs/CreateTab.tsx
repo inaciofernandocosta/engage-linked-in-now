@@ -169,35 +169,6 @@ const CreateTab = ({
     );
   }
 
-  if (currentStep === 'approval') {
-    return (
-      <div className="p-4">
-        <div className="bg-card rounded-xl p-8 shadow-sm border text-center">
-          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-8 h-8 text-success" />
-          </div>
-          <h3 className="text-lg font-semibold text-card-foreground mb-2">Post Salvo!</h3>
-          <p className="text-muted-foreground mb-6">Post salvo como pendente. Gerencie na aba Publicações ou aprove agora.</p>
-          
-          <div className="space-y-3">
-            <button 
-              onClick={approvePost}
-              className="w-full bg-success text-success-foreground py-3 px-4 rounded-xl font-medium hover:bg-success/90 flex items-center justify-center space-x-2"
-            >
-              <Check className="w-4 h-4" />
-              <span>Aprovar e Publicar</span>
-            </button>
-            <button 
-              onClick={() => setCurrentStep('create')}
-              className="w-full border border-border text-card-foreground py-3 px-4 rounded-xl font-medium hover:bg-muted"
-            >
-              Editar Novamente
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

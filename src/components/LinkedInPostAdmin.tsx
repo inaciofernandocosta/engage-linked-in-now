@@ -284,7 +284,9 @@ const LinkedInPostAdmin = () => {
           status: 'pending'
         });
         
-        setCurrentStep('approval');
+        // Redirecionar para Publications em vez de mostrar tela de aprovação
+        setCurrentStep('create');
+        setCurrentTab('publications');
       } else {
         console.error('❌ Success = false:', data);
         throw new Error(data.error || data.details || 'Erro desconhecido na publicação');
