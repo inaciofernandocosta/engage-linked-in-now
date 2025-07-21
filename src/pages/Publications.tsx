@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, Check, X, MoreVertical, Image, FileText } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,11 +24,17 @@ interface Post {
   webhook_url?: string;
 }
 
-const Publications = () => {
+interface PublicationsProps {
+  onEditPost?: (post: Post) => void;
+}
+
+const Publications = ({ onEditPost }: PublicationsProps = {}) => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   
   const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost } = usePosts();
 
@@ -72,9 +78,24 @@ const Publications = () => {
     return content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
   };
 
-  const pendingPosts = posts.filter(post => post.status === 'pending');
-  const scheduledPosts = posts.filter(post => post.status === 'pending' && post.scheduled_for);
-  const publishedPosts = posts.filter(post => post.status === 'published');
+  // Filter posts based on search term and date
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      const matchesSearch = searchTerm === '' || 
+        post.content.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesDate = dateFilter === '' || 
+        new Date(post.created_at).toDateString() === new Date(dateFilter).toDateString() ||
+        (post.scheduled_for && new Date(post.scheduled_for).toDateString() === new Date(dateFilter).toDateString()) ||
+        (post.published_at && new Date(post.published_at).toDateString() === new Date(dateFilter).toDateString());
+      
+      return matchesSearch && matchesDate;
+    });
+  }, [posts, searchTerm, dateFilter]);
+
+  const pendingPosts = filteredPosts.filter(post => post.status === 'pending');
+  const scheduledPosts = filteredPosts.filter(post => post.status === 'pending' && post.scheduled_for);
+  const publishedPosts = filteredPosts.filter(post => post.status === 'published');
 
   if (loading) {
     return (
@@ -92,6 +113,39 @@ const Publications = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-2">Publicações</h1>
         <p className="text-muted-foreground">Gerencie suas publicações pendentes, agendadas e publicadas</p>
+        
+        {/* Filtros de busca */}
+        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Buscar por conteúdo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex-none">
+            <Input
+              type="date"
+              placeholder="Filtrar por data"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full sm:w-auto"
+            />
+          </div>
+          {(searchTerm || dateFilter) && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm('');
+                setDateFilter('');
+              }}
+            >
+              Limpar
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="pending" className="w-full">
@@ -139,6 +193,13 @@ const Publications = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                          onClick={() => onEditPost?.(post)}
+                          className="text-blue-600"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => approvePost(post.id)}
                           className="text-green-600"
                         >
@@ -150,7 +211,7 @@ const Publications = () => {
                             setSelectedPost(post);
                             setIsScheduleDialogOpen(true);
                           }}
-                          className="text-blue-600"
+                          className="text-orange-600"
                         >
                           <Calendar className="w-4 h-4 mr-2" />
                           Agendar
@@ -210,6 +271,13 @@ const Publications = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => onEditPost?.(post)}
+                          className="text-blue-600"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => approvePost(post.id)}
                           className="text-green-600"

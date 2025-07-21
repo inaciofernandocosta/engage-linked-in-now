@@ -25,6 +25,32 @@ const LinkedInPostAdmin = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { toast } = useToast();
 
+  // Function to handle editing a post
+  const handleEditPost = (post: any) => {
+    // Set the post content and images
+    setPostContent(post.content);
+    
+    // If post has an image, add it to the images array
+    if (post.image_url) {
+      setImages([{ 
+        id: Date.now(), 
+        url: post.image_url, 
+        name: 'post-image.jpg' 
+      }]);
+    } else {
+      setImages([]);
+    }
+    
+    // Switch to create tab and reset step
+    setCurrentTab('create');
+    setCurrentStep('create');
+    
+    toast({
+      title: "Post carregado para edição",
+      description: "Você pode agora editar o conteúdo e republica-lo",
+    });
+  };
+
   // PWA Status Bar e Network Detection
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -345,7 +371,7 @@ const LinkedInPostAdmin = () => {
       case 'analytics':
         return <AnalyticsTab />;
       case 'publications':
-        return <Publications />;
+        return <Publications onEditPost={handleEditPost} />;
       default:
         return <HomeTab setCurrentTab={setCurrentTab} />;
     }
