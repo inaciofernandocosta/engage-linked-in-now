@@ -30,8 +30,17 @@ const LinkedInPostAdmin = () => {
     // Set the post content and images
     setPostContent(post.content);
     
-    // If post has an image, add it to the images array
-    if (post.image_url) {
+    // Handle multiple images from the new images column
+    if (post.images && Array.isArray(post.images) && post.images.length > 0) {
+      // Convert database images to component format
+      const convertedImages = post.images.map((img: any, index: number) => ({
+        id: Date.now() + index,
+        url: img.url,
+        name: img.name || `image-${index + 1}.jpg`
+      }));
+      setImages(convertedImages);
+    } else if (post.image_url) {
+      // Fallback for old single image format
       setImages([{ 
         id: Date.now(), 
         url: post.image_url, 
@@ -231,40 +240,29 @@ const LinkedInPostAdmin = () => {
     setCurrentStep('webhook');
     
     try {
-      const imageUrl = images.length > 0 ? images[0].url : null;
       const webhookUrl = "https://n8n-n8n-start.43ir9u.easypanel.host/webhook/instagran";
 
       console.log('=== DADOS PARA SALVAR ===');
       console.log('- Content length:', postContent.length);
       console.log('- Images array:', images);
-      console.log('- ImageUrl (primeiro 50 chars):', imageUrl ? imageUrl.substring(0, 50) + '...' : 'null');
       console.log('- WebhookUrl:', webhookUrl);
 
-      // Determinar dados da imagem para envio
-      let imageDataToSend = null;
-      let imageUrlToSend = null;
-      
-      if (imageUrl) {
-        if (imageUrl.startsWith('data:')) {
-          // Imagem já em base64 (upload manual) - enviar como base64
-          imageDataToSend = imageUrl;
-          console.log('- Imagem manual (base64) detectada');
-        } else if (imageUrl.startsWith('http')) {
-          // URL externa (gerada por IA) - enviar URL para backend processar
-          imageUrlToSend = imageUrl;
-          console.log('- URL externa (IA) detectada, backend irá processar');
-        }
-      }
+      // Prepare images data for backend
+      const imagesData = images.map(img => ({
+        url: img.url,
+        name: img.name,
+        // Determine if it's base64 or external URL
+        isBase64: img.url.startsWith('data:'),
+        isExternal: img.url.startsWith('http')
+      }));
 
-      console.log('- ImageBase64 preparado:', imageDataToSend ? 'SIM' : 'NÃO');
-      console.log('- ImageUrl externa preparada:', imageUrlToSend ? 'SIM' : 'NÃO');
+      console.log('- Images prepared:', imagesData.length);
       console.log('Salvando post como pendente...');
       
       const { data, error } = await supabase.functions.invoke('publish-post', {
         body: {
           content: postContent,
-          imageUrl: imageUrlToSend, // URL externa (IA) para backend processar
-          imageBase64: imageDataToSend, // Base64 direto (upload manual)
+          images: imagesData, // Send all images data
           webhookUrl: webhookUrl,
           status: 'pending' // Salvar como pendente
         }

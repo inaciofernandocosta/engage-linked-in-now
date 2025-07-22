@@ -21,6 +21,7 @@ export type Database = {
           id: string
           image_storage_path: string | null
           image_url: string | null
+          images: Json | null
           published_at: string
           scheduled_for: string | null
           status: string | null
@@ -34,6 +35,7 @@ export type Database = {
           id?: string
           image_storage_path?: string | null
           image_url?: string | null
+          images?: Json | null
           published_at?: string
           scheduled_for?: string | null
           status?: string | null
@@ -47,6 +49,7 @@ export type Database = {
           id?: string
           image_storage_path?: string | null
           image_url?: string | null
+          images?: Json | null
           published_at?: string
           scheduled_for?: string | null
           status?: string | null

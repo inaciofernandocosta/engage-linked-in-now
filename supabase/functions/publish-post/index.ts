@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -48,6 +47,74 @@ const convertUrlToBase64 = async (url: string): Promise<string | null> => {
   }
 };
 
+// Função auxiliar para upload de imagem para storage
+const uploadImageToStorage = async (
+  base64Data: string, 
+  fileName: string, 
+  userId: string, 
+  supabaseAdmin: any
+): Promise<{ success: boolean; url?: string; path?: string }> => {
+  try {
+    console.log('Fazendo upload da imagem para storage...');
+    
+    // Extrair dados base64 e tipo MIME
+    const [header, base64Content] = base64Data.split(',');
+    if (!base64Content) {
+      throw new Error('Dados base64 inválidos - não foi possível extrair dados após vírgula');
+    }
+    
+    const mimeMatch = header.match(/data:([^;]+)/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+    const extension = mimeType.includes('jpeg') ? 'jpg' : 
+                     mimeType.includes('png') ? 'png' : 
+                     mimeType.includes('webp') ? 'webp' : 'jpg';
+    
+    console.log('Base64 data length:', base64Content.length);
+    console.log('MIME type detected:', mimeType);
+    
+    const imageBuffer = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
+    console.log('Image buffer created, length:', imageBuffer.length);
+    
+    // Gerar nome único para o arquivo
+    const fileBaseName = fileName.replace(/\.[^/.]+$/, ""); // Remove extensão
+    const uniqueFileName = `${userId}/${Date.now()}-${fileBaseName}.${extension}`;
+    
+    console.log('Upload filename:', uniqueFileName);
+    
+    // Upload para storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from('post-images')
+      .upload(uniqueFileName, imageBuffer, {
+        contentType: mimeType,
+        upsert: false
+      });
+      
+    if (uploadError) {
+      console.error('ERRO upload storage:', uploadError);
+      throw new Error(`Falha no upload: ${uploadError.message}`);
+    }
+    
+    console.log('Upload data:', uploadData);
+    
+    // Obter URL pública
+    const { data: urlData } = supabaseAdmin.storage
+      .from('post-images')
+      .getPublicUrl(uniqueFileName);
+      
+    console.log('Upload realizado com sucesso. URL:', urlData.publicUrl);
+    
+    return {
+      success: true,
+      url: urlData.publicUrl,
+      path: uniqueFileName
+    };
+    
+  } catch (uploadError) {
+    console.error('ERRO processamento imagem:', uploadError);
+    return { success: false };
+  }
+};
+
 serve(async (req) => {
   console.log('=== PUBLISH-POST INICIADO ===');
   console.log('Method:', req.method);
@@ -91,10 +158,11 @@ serve(async (req) => {
       );
     }
 
-    const { content, imageUrl, imageBase64, webhookUrl, status } = body;
+    const { content, images, imageUrl, imageBase64, webhookUrl, status } = body;
     console.log('Content:', content);
-    console.log('ImageUrl:', imageUrl);
-    console.log('ImageBase64:', imageBase64 ? 'presente' : 'não presente');
+    console.log('Images:', images ? `${images.length} images` : 'não presente');
+    console.log('ImageUrl (legacy):', imageUrl);
+    console.log('ImageBase64 (legacy):', imageBase64 ? 'presente' : 'não presente');
     console.log('WebhookUrl:', webhookUrl);
     console.log('Status:', status || 'não especificado (default: pending)');
 
@@ -168,98 +236,99 @@ serve(async (req) => {
 
     console.log('Conexão admin OK');
 
-    // 6. Processar upload de imagem (se necessário)
-    let finalImageUrl: string | null = null;
-    let imagePath: string | null = null;
-    let processedBase64: string | null = imageBase64;
+    // 6. Processar upload de múltiplas imagens
+    let finalImageUrl: string | null = null; // Manter para compatibilidade
+    let imagePath: string | null = null; // Manter para compatibilidade
+    let processedImages: Array<{ url: string; name: string; storage_path?: string }> = [];
     
-    console.log('=== PROCESSAMENTO DE IMAGEM ===');
-    console.log('imageBase64 presente?:', !!imageBase64);
-    console.log('imageBase64 length:', imageBase64 ? imageBase64.length : 0);
-    console.log('imageBase64 é base64?:', imageBase64 && imageBase64.startsWith('data:'));
-    console.log('imageUrl presente?:', !!imageUrl);
-
-    // Se há uma URL de imagem mas não base64, converter URL para base64
-    if (imageUrl && !imageBase64) {
-      console.log('Convertendo URL para base64 no backend...');
-      processedBase64 = await convertUrlToBase64(imageUrl);
+    console.log('=== PROCESSAMENTO DE MÚLTIPLAS IMAGENS ===');
+    
+    // Processar novo formato de múltiplas imagens
+    if (images && Array.isArray(images) && images.length > 0) {
+      console.log('Processando múltiplas imagens:', images.length);
       
-      if (!processedBase64) {
-        console.log('Falha na conversão URL->base64, continuando sem imagem');
-      } else {
-        console.log('Conversão URL->base64 realizada com sucesso');
-      }
-    }
-    
-    if (processedBase64 && processedBase64.startsWith('data:')) {
-      console.log('Fazendo upload da imagem para storage...');
-      try {
-        // Extrair dados base64 e tipo MIME
-        const [header, base64Data] = processedBase64.split(',');
-        if (!base64Data) {
-          throw new Error('Dados base64 inválidos - não foi possível extrair dados após vírgula');
+      for (const [index, imageData] of images.entries()) {
+        console.log(`Processando imagem ${index + 1}/${images.length}`);
+        
+        let processedImageUrl: string | null = null;
+        let processedImagePath: string | null = null;
+        
+        // Se é uma URL externa, converter para base64
+        if (imageData.isExternal && imageData.url.startsWith('http')) {
+          console.log('Convertendo URL externa para base64...');
+          const convertedBase64 = await convertUrlToBase64(imageData.url);
+          
+          if (convertedBase64) {
+            // Upload da imagem convertida
+            const uploadResult = await uploadImageToStorage(convertedBase64, imageData.name, user.id, supabaseAdmin);
+            if (uploadResult.success) {
+              processedImageUrl = uploadResult.url;
+              processedImagePath = uploadResult.path;
+            }
+          }
+        } 
+        // Se é base64, fazer upload direto
+        else if (imageData.isBase64 && imageData.url.startsWith('data:')) {
+          console.log('Fazendo upload de imagem base64...');
+          const uploadResult = await uploadImageToStorage(imageData.url, imageData.name, user.id, supabaseAdmin);
+          if (uploadResult.success) {
+            processedImageUrl = uploadResult.url;
+            processedImagePath = uploadResult.path;
+          }
         }
         
-        const mimeMatch = header.match(/data:([^;]+)/);
-        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
-        const extension = mimeType.includes('jpeg') ? 'jpg' : 
-                         mimeType.includes('png') ? 'png' : 
-                         mimeType.includes('webp') ? 'webp' : 'jpg';
-        
-        console.log('Base64 data length:', base64Data.length);
-        console.log('MIME type detected:', mimeType);
-        
-        const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        console.log('Image buffer created, length:', imageBuffer.length);
-        
-        // Gerar nome único para o arquivo
-        const fileName = `${user.id}/${Date.now()}.${extension}`;
-        imagePath = fileName;
-        console.log('Upload filename:', fileName);
-        
-        // Upload para storage
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-          .from('post-images')
-          .upload(fileName, imageBuffer, {
-            contentType: mimeType,
-            upsert: false
+        // Adicionar imagem processada ao array
+        if (processedImageUrl) {
+          processedImages.push({
+            url: processedImageUrl,
+            name: imageData.name,
+            storage_path: processedImagePath
           });
           
-        if (uploadError) {
-          console.error('ERRO upload storage:', uploadError);
-          throw new Error(`Falha no upload: ${uploadError.message}`);
+          // Manter compatibilidade - usar primeira imagem como principal
+          if (index === 0) {
+            finalImageUrl = processedImageUrl;
+            imagePath = processedImagePath;
+          }
         }
-        
-        console.log('Upload data:', uploadData);
-        
-        // Obter URL pública
-        const { data: urlData } = supabaseAdmin.storage
-          .from('post-images')
-          .getPublicUrl(fileName);
-          
-        finalImageUrl = urlData.publicUrl;
-        console.log('Upload realizado com sucesso. URL:', finalImageUrl);
-        
-      } catch (uploadError) {
-        console.error('ERRO processamento imagem:', uploadError);
-        // Continuar sem imagem se upload falhar, não retornar erro
-        console.log('Continuando sem imagem devido ao erro de upload');
-        finalImageUrl = null;
-        imagePath = null;
       }
-    } else {
-      console.log('Nenhuma imagem para processar');
     }
+    // Fallback para formato legado (compatibilidade)
+    else if (imageUrl || imageBase64) {
+      console.log('Processando imagem legada (compatibilidade)...');
+      let processedBase64: string | null = imageBase64;
+      
+      if (imageUrl && !imageBase64) {
+        console.log('Convertendo URL legada para base64...');
+        processedBase64 = await convertUrlToBase64(imageUrl);
+      }
+      
+      if (processedBase64 && processedBase64.startsWith('data:')) {
+        const uploadResult = await uploadImageToStorage(processedBase64, 'legacy-image.jpg', user.id, supabaseAdmin);
+        if (uploadResult.success) {
+          finalImageUrl = uploadResult.url;
+          imagePath = uploadResult.path;
+          processedImages.push({
+            url: uploadResult.url,
+            name: 'legacy-image.jpg',
+            storage_path: uploadResult.path
+          });
+        }
+      }
+    }
+    
+    console.log(`Total de imagens processadas: ${processedImages.length}`);
 
     // 7. Inserir post com status especificado
     console.log('Inserindo post...');
     const postData = {
       user_id: user.id,
       content: content,
-      image_url: finalImageUrl || null,
-      image_storage_path: imagePath,
-      webhook_url: webhookUrl || null, // Salvar webhook_url para que o trigger possa usar
-      status: status || 'pending' // Default para pending se não especificado
+      image_url: finalImageUrl || null, // Manter para compatibilidade
+      image_storage_path: imagePath, // Manter para compatibilidade  
+      images: processedImages.length > 0 ? processedImages : [],
+      webhook_url: webhookUrl || null,
+      status: status || 'pending'
     };
     
     console.log('Dados a inserir:', postData);

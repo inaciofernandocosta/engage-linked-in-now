@@ -7,6 +7,7 @@ interface Post {
   id: string;
   content: string;
   image_url?: string;
+  images?: Array<{ url: string; name: string; storage_path?: string }>;
   status: string;
   scheduled_for?: string;
   created_at: string;
@@ -34,7 +35,16 @@ export const usePosts = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPosts(data || []);
+      
+      // Process the posts data to handle JSONB images column
+      const processedPosts = (data || []).map(post => ({
+        ...post,
+        images: Array.isArray(post.images) 
+          ? (post.images as Array<{ url: string; name: string; storage_path?: string }>)
+          : []
+      }));
+      
+      setPosts(processedPosts);
     } catch (error) {
       console.error('Erro ao buscar posts:', error);
       toast({
