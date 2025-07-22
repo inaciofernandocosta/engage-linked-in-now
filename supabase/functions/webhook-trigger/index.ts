@@ -102,30 +102,64 @@ serve(async (req) => {
       );
     }
 
-    // Buscar dados da imagem se image_storage_path estiver presente
-    let imageData = null;
-    if (image_storage_path) {
-      console.log(`[${execution_id}] 🖼️ Processando imagem do storage:`, image_storage_path);
-      imageData = await getImageAsBase64(image_storage_path);
-      
-      if (imageData) {
-        console.log(`[${execution_id}] ✅ Imagem processada com sucesso para LinkedIn`);
-      } else {
-        console.log(`[${execution_id}] ⚠️ Falha ao processar imagem - continuando sem image_data`);
+    // Buscar o post completo do banco para obter o array de imagens
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase credentials');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Buscar o post com o array de imagens
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('images')
+      .eq('id', post_id)
+      .single();
+
+    if (postError) {
+      console.error(`[${execution_id}] Erro ao buscar post:`, postError);
+      throw new Error(`Failed to fetch post: ${postError.message}`);
+    }
+
+    // Processar múltiplas imagens
+    let imagesData = [];
+    const imagesArray = postData?.images || [];
+    
+    console.log(`[${execution_id}] 🖼️ Processando ${imagesArray.length} imagens`);
+    
+    for (let i = 0; i < imagesArray.length; i++) {
+      const imageInfo = imagesArray[i];
+      if (imageInfo.storage_path) {
+        console.log(`[${execution_id}] Processando imagem ${i + 1}/${imagesArray.length}:`, imageInfo.storage_path);
+        const imageData = await getImageAsBase64(imageInfo.storage_path);
+        
+        if (imageData) {
+          imagesData.push({
+            ...imageData,
+            original_name: imageInfo.name,
+            url: imageInfo.url
+          });
+          console.log(`[${execution_id}] ✅ Imagem ${i + 1} processada com sucesso`);
+        } else {
+          console.log(`[${execution_id}] ⚠️ Falha ao processar imagem ${i + 1}`);
+        }
       }
     }
 
-    // Construir payload para o webhook
+    // Construir payload para o webhook com múltiplas imagens
     const webhookPayload = {
       post_id,
       content,
-      image_url, // manter para compatibilidade
-      data: imageData, // dados binários para LinkedIn (alterado de image_data para data)
+      image_url, // manter para compatibilidade (primeira imagem)
+      images: imagesData, // array com todas as imagens em base64
       published_at,
       user_id
     };
 
-    console.log(`[${execution_id}] Campo alterado para 'data' (v2):`, imageData ? 'Imagem presente' : 'Sem imagem');
+    console.log(`[${execution_id}] ✅ Processadas ${imagesData.length} imagens de ${imagesArray.length} disponíveis`);
 
     console.log(`[${execution_id}] === CHAMANDO WEBHOOK ===`);
     console.log(`[${execution_id}] URL:`, webhook_url);
