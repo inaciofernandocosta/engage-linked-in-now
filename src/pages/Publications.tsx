@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search, Trash2, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
   const postsPerPage = 10;
   
-  const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost, deletePostsByStatus } = usePosts();
+  const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost, deletePostsByStatus, duplicatePost } = usePosts();
 
   const handleSchedulePost = async (postId: string) => {
     if (!scheduleDate || !scheduleTime) {
@@ -551,6 +551,13 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => duplicatePost(post)}
+                            className="text-blue-600"
+                          >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Duplicar
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => deletePost(post.id)}
                             className="text-red-600"

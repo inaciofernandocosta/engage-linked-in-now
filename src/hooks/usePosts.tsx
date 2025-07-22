@@ -207,6 +207,41 @@ export const usePosts = () => {
     }
   };
 
+  const duplicatePost = async (post: Post) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          content: post.content,
+          image_url: post.image_url,
+          image_storage_path: post.image_storage_path,
+          images: post.images || [],
+          webhook_url: post.webhook_url,
+          status: 'pending',
+          scheduled_for: null
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Post Duplicado",
+        description: "O post foi duplicado e adicionado aos pendentes",
+      });
+
+      fetchPosts();
+    } catch (error) {
+      console.error('Erro ao duplicar post:', error);
+      toast({
+        title: "Erro", 
+        description: "Não foi possível duplicar o post",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
   }, [user]);
@@ -245,6 +280,7 @@ export const usePosts = () => {
     schedulePost,
     deletePost,
     deleteAllPosts,
-    deletePostsByStatus
+    deletePostsByStatus,
+    duplicatePost
   };
 };
