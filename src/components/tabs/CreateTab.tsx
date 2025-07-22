@@ -55,6 +55,22 @@ const CreateTab = ({
   const characterCount = postContent.length;
   const [instructions, setInstructions] = useState("");
   const instructionCount = instructions.length;
+  
+  // Limite dinâmico de caracteres baseado na seleção de tamanho
+  const getInstructionLimit = () => {
+    switch (aiParams.size) {
+      case 'short':
+        return 500;
+      case 'medium': 
+        return 1000;
+      case 'long':
+        return 3000;
+      default:
+        return 500;
+    }
+  };
+  
+  const instructionLimit = getInstructionLimit();
   const { profile, getFullName, getAvatarUrl } = useProfile();
   const { toast } = useToast();
   
@@ -176,21 +192,21 @@ const CreateTab = ({
       <div className="linkedin-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg text-card-foreground">Instruções ou Rascunho</h3>
-          <span className={`text-sm font-medium ${instructionCount > 500 ? 'text-destructive' : 'text-muted-foreground'}`}>
-            {instructionCount}/500
+          <span className={`text-sm font-medium ${instructionCount > instructionLimit ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {instructionCount}/{instructionLimit}
           </span>
         </div>
         
         <textarea
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
-          maxLength={500}
-          placeholder="Ex: Participei nesta sexta feira de uma formação na Statse de conselheiro e foi um evento muito bacana que aprendi muito sobre governança..."
+          maxLength={instructionLimit}
+          placeholder="Descreva o que você quer compartilhar no LinkedIn. Pode ser uma experiência, reflexão, dica profissional ou qualquer ideia que você gostaria de transformar em um post..."
           className="w-full h-32 p-4 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground linkedin-input"
         />
         
         <p className="text-sm text-muted-foreground mt-3">
-          Digite suas ideias ou rascunho que a IA irá transformar em um post profissional
+          Escreva suas ideias de forma livre. A IA irá transformar seu texto em um post profissional seguindo o tamanho, tom e objetivo selecionados abaixo.
         </p>
       </div>
 
