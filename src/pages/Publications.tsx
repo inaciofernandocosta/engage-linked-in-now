@@ -260,13 +260,13 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
             </TabsTrigger>
           </TabsList>
           
-          {/* Botão para excluir todos da aba atual */}
+          {/* Botão discreto para excluir todos da aba atual */}
           {getCurrentPosts().length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" className="flex items-center gap-2">
-                  <Trash2 className="w-4 h-4" />
-                  Excluir Todos {activeTab === 'pending' ? 'Pendentes' : activeTab === 'scheduled' ? 'Agendados' : 'Publicados'}
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive flex items-center gap-1">
+                  <Trash2 className="w-3 h-3" />
+                  <span className="text-xs">Limpar {activeTab === 'pending' ? 'pendentes' : activeTab === 'scheduled' ? 'agendados' : 'publicados'}</span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
