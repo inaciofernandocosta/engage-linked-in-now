@@ -299,8 +299,8 @@ const LinkedInPostAdmin = () => {
         const hasImage = postDetails.image_url ? 'com imagem' : 'sem imagem';
         
         toast({
-          title: "Post Salvo como Pendente!",
-          description: `Post ${hasImage} salvo e aguardando aprovação ou agendamento`,
+          title: "✅ Post Salvo!",
+          description: `Post ${hasImage} foi salvo com sucesso e está aguardando publicação.`,
         });
         
         console.log('📝 Post salvo como pendente:', {

@@ -308,7 +308,7 @@ const CreateTab = ({
           value={postContent}
           onChange={handleContentChange}
           maxLength={characterLimit}
-          placeholder="O conteúdo gerado pela IA aparecerá aqui. Você pode editá-lo antes de usar o botão 'Corrigir Conteúdo'..."
+          placeholder="O conteúdo gerado pela IA aparecerá aqui. Você pode editá-lo antes de usar o botão 'Corrigir'..."
           className="w-full h-40 p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground"
         />
 
@@ -425,7 +425,7 @@ const CreateTab = ({
               ) : (
                 <>
                   <PenTool className="w-4 h-4" />
-                  <span>Corrigir Conteúdo</span>
+                  <span>Corrigir</span>
                 </>
               )}
             </button>
@@ -436,7 +436,7 @@ const CreateTab = ({
               className="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Send className="w-4 h-4" />
-              <span>Salvar como Pendente</span>
+              <span>Salvar</span>
             </button>
           </div>
         </div>
