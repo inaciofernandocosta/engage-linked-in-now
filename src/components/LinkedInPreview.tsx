@@ -154,29 +154,30 @@ const LinkedInPreview = ({ postContent, images, userAvatar, userName = "Seu Nome
       
       <div className="px-4 py-2">
         <div className="flex justify-around">
-          <button className="flex-1 flex items-center justify-center space-x-2 py-3 px-2 text-muted-foreground hover:bg-muted rounded-lg text-sm font-medium transition-colors duration-200 group">
-            <svg className="w-5 h-5 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
+          <button className="flex-1 flex items-center justify-center space-x-1 py-3 px-1 text-muted-foreground hover:bg-muted rounded-lg text-xs font-medium transition-colors duration-200 group">
+            <svg className="w-4 h-4 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"/>
             </svg>
             <span className="group-hover:text-primary transition-colors">Gostei</span>
           </button>
           
-          <button className="flex-1 flex items-center justify-center space-x-2 py-3 px-2 text-muted-foreground hover:bg-muted rounded-lg text-sm font-medium transition-colors duration-200 group">
-            <svg className="w-5 h-5 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
+          <button className="flex-1 flex items-center justify-center space-x-1 py-3 px-1 text-muted-foreground hover:bg-muted rounded-lg text-xs font-medium transition-colors duration-200 group">
+            <svg className="w-4 h-4 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd"/>
             </svg>
             <span className="group-hover:text-primary transition-colors">Comentar</span>
           </button>
           
-          <button className="flex-1 flex items-center justify-center space-x-2 py-3 px-2 text-muted-foreground hover:bg-muted rounded-lg text-sm font-medium transition-colors duration-200 group">
-            <svg className="w-5 h-5 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
+          <button className="flex-1 flex items-center justify-center space-x-1 py-3 px-1 text-muted-foreground hover:bg-muted rounded-lg text-xs font-medium transition-colors duration-200 group">
+            <svg className="w-4 h-4 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
               <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
             </svg>
-            <span className="group-hover:text-primary transition-colors">Compartilhar</span>
+            <span className="group-hover:text-primary transition-colors hidden sm:inline">Compartilhar</span>
+            <span className="group-hover:text-primary transition-colors sm:hidden">Comp.</span>
           </button>
           
-          <button className="flex-1 flex items-center justify-center space-x-2 py-3 px-2 text-muted-foreground hover:bg-muted rounded-lg text-sm font-medium transition-colors duration-200 group">
-            <svg className="w-5 h-5 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
+          <button className="flex-1 flex items-center justify-center space-x-1 py-3 px-1 text-muted-foreground hover:bg-muted rounded-lg text-xs font-medium transition-colors duration-200 group">
+            <svg className="w-4 h-4 group-hover:text-primary transition-colors" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
             </svg>
             <span className="group-hover:text-primary transition-colors">Enviar</span>
