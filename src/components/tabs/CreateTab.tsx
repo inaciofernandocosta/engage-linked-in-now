@@ -201,12 +201,12 @@ const CreateTab = ({
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           maxLength={instructionLimit}
-          placeholder="Descreva o que você quer compartilhar no LinkedIn. Pode ser uma experiência, reflexão, dica profissional ou qualquer ideia que você gostaria de transformar em um post..."
+          placeholder="Descreva sua ideia ou experiência..."
           className="w-full h-32 p-4 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-background text-foreground linkedin-input"
         />
         
         <p className="text-sm text-muted-foreground mt-3">
-          Escreva suas ideias de forma livre. A IA irá transformar seu texto em um post profissional seguindo o tamanho, tom e objetivo selecionados abaixo.
+          A IA transformará seu texto em um post profissional
         </p>
       </div>
 
