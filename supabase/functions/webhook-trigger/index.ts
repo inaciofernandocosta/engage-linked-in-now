@@ -78,31 +78,85 @@ const getImageAsBase64 = async (imagePath: string): Promise<{content: string, co
   }
 };
 
-// Função auxiliar para enviar webhook
+// Função auxiliar para enviar webhook com retry e logs detalhados
 const sendWebhook = async (webhook_url: string, payload: any, execution_id: string) => {
-  console.log(`[${execution_id}] === CHAMANDO WEBHOOK ===`);
-  console.log(`[${execution_id}] URL:`, webhook_url);
-  console.log(`[${execution_id}] Payload:`, JSON.stringify(payload, null, 2));
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-  const webhookResponse = await fetch(webhook_url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[${execution_id}] === CHAMANDO WEBHOOK (Tentativa ${attempt}/${maxRetries}) ===`);
+      console.log(`[${execution_id}] URL: ${webhook_url}`);
+      console.log(`[${execution_id}] Payload size: ${JSON.stringify(payload).length} chars`);
+      console.log(`[${execution_id}] Images count: ${payload.images?.length || 0}`);
+      
+      // Log detalhado do payload (resumido)
+      const payloadSummary = {
+        post_id: payload.post_id,
+        content_preview: payload.content?.substring(0, 100) + '...',
+        images_count: payload.images?.length || 0,
+        has_images: (payload.images?.length || 0) > 0,
+        timestamp: payload.timestamp || new Date().toISOString()
+      };
+      console.log(`[${execution_id}] Payload summary:`, JSON.stringify(payloadSummary, null, 2));
 
-  console.log(`[${execution_id}] Webhook response status:`, webhookResponse.status);
-  
-  const responseText = await webhookResponse.text();
-  console.log(`[${execution_id}] Webhook response text:`, responseText);
+      const response = await fetch(webhook_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Supabase-Webhook/1.0',
+        },
+        body: JSON.stringify(payload)
+      });
 
-  if (!webhookResponse.ok) {
-    throw new Error(`Webhook call failed: ${webhookResponse.status} ${webhookResponse.statusText}`);
+      console.log(`[${execution_id}] Webhook response status: ${response.status}`);
+      console.log(`[${execution_id}] Webhook response headers:`, Object.fromEntries(response.headers.entries()));
+
+      // Sempre ler a resposta, mesmo que seja erro
+      const responseText = await response.text();
+      console.log(`[${execution_id}] Webhook response text: ${responseText}`);
+
+      if (response.ok) {
+        console.log(`[${execution_id}] ✅ Webhook enviado com sucesso na tentativa ${attempt}`);
+        return { success: true, status: response.status, data: responseText };
+      } else {
+        // Se for erro 4xx, não retry (erro do cliente/configuração)
+        if (response.status >= 400 && response.status < 500) {
+          console.log(`[${execution_id}] ❌ Erro 4xx - não retentando: ${response.status} ${responseText}`);
+          console.log(`[${execution_id}] 💡 DICA: Verifique se o webhook n8n está configurado corretamente e ativo`);
+          throw new Error(`Webhook call failed: ${response.status} ${response.statusText}. Response: ${responseText}`);
+        }
+        
+        // Se for erro 5xx, vamos tentar novamente
+        lastError = new Error(`Webhook call failed: ${response.status} ${response.statusText}. Response: ${responseText}`);
+        console.log(`[${execution_id}] ⚠️ Erro 5xx na tentativa ${attempt}: ${lastError.message}`);
+        
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+          console.log(`[${execution_id}] 🔄 Aguardando ${delay}ms antes da próxima tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    } catch (error) {
+      lastError = error as Error;
+      console.log(`[${execution_id}] ❌ Erro na tentativa ${attempt}:`, error.message);
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`[${execution_id}] 🔄 Aguardando ${delay}ms antes da próxima tentativa...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
 
-  console.log(`[${execution_id}] ✅ Webhook chamado com sucesso!`);
-  return webhookResponse;
+  // Se chegou aqui, todas as tentativas falharam
+  console.log(`[${execution_id}] ❌ Todas as ${maxRetries} tentativas falharam`);
+  console.log(`[${execution_id}] 🔧 DEBUGGING INFO: Verifique se seu n8n workflow está:`);
+  console.log(`[${execution_id}]    1. ✅ Ativo/ativado`);
+  console.log(`[${execution_id}]    2. ✅ Configurado para aceitar POST requests`);
+  console.log(`[${execution_id}]    3. ✅ Retornando status 200`);
+  console.log(`[${execution_id}]    4. ✅ Processando o payload corretamente`);
+  throw lastError || new Error('Failed to send webhook after all retries');
 };
 
 serve(async (req) => {
