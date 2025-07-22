@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +36,11 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
   const [scheduleTime, setScheduleTime] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('pending');
+  const postsPerPage = 10;
   
-  const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost, deleteAllPosts } = usePosts();
+  const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost, deletePostsByStatus } = usePosts();
 
   const handleSchedulePost = async (postId: string) => {
     if (!scheduleDate || !scheduleTime) {
@@ -95,9 +97,96 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
     });
   }, [posts, searchTerm, dateFilter]);
 
-  const pendingPosts = filteredPosts.filter(post => post.status === 'pending');
+  const pendingPosts = filteredPosts.filter(post => post.status === 'pending' && !post.scheduled_for);
   const scheduledPosts = filteredPosts.filter(post => post.status === 'pending' && post.scheduled_for);
   const publishedPosts = filteredPosts.filter(post => post.status === 'published');
+
+  // Pagination logic
+  const getPaginatedPosts = (postsList: Post[]) => {
+    const startIndex = (currentPage - 1) * postsPerPage;
+    return postsList.slice(startIndex, startIndex + postsPerPage);
+  };
+
+  const getTotalPages = (postsList: Post[]) => {
+    return Math.ceil(postsList.length / postsPerPage);
+  };
+
+  const getCurrentPosts = () => {
+    switch (activeTab) {
+      case 'pending':
+        return getPaginatedPosts(pendingPosts);
+      case 'scheduled':
+        return getPaginatedPosts(scheduledPosts);
+      case 'published':
+        return getPaginatedPosts(publishedPosts);
+      default:
+        return [];
+    }
+  };
+
+  const getCurrentTotalPages = () => {
+    switch (activeTab) {
+      case 'pending':
+        return getTotalPages(pendingPosts);
+      case 'scheduled':
+        return getTotalPages(scheduledPosts);
+      case 'published':
+        return getTotalPages(publishedPosts);
+      default:
+        return 1;
+    }
+  };
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    setCurrentPage(1); // Reset to first page when switching tabs
+  };
+
+  const handleDeleteAllByStatus = async () => {
+    switch (activeTab) {
+      case 'pending':
+        await deletePostsByStatus('pending', false);
+        break;
+      case 'scheduled':
+        await deletePostsByStatus('pending', true);
+        break;
+      case 'published':
+        await deletePostsByStatus('published');
+        break;
+    }
+  };
+
+  const renderPagination = () => {
+    if (getCurrentTotalPages() <= 1) return null;
+
+    return (
+      <div className="flex justify-center items-center gap-2 mt-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          disabled={currentPage === 1}
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Anterior
+        </Button>
+        
+        <span className="px-4 py-2 text-sm">
+          Página {currentPage} de {getCurrentTotalPages()}
+        </span>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(prev => Math.min(getCurrentTotalPages(), prev + 1))}
+          disabled={currentPage === getCurrentTotalPages()}
+        >
+          Próxima
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -118,31 +207,6 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
             <h1 className="text-2xl font-bold text-foreground mb-2">Publicações</h1>
             <p className="text-muted-foreground">Gerencie suas publicações pendentes, agendadas e publicadas</p>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="flex items-center gap-2">
-                <Trash2 className="w-4 h-4" />
-                Excluir Todos
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir Todos os Posts</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Todos os seus posts (pendentes, agendados e publicados) serão excluídos permanentemente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={deleteAllPosts}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Excluir Todos
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
         
         {/* Filtros de busca */}
@@ -179,24 +243,55 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
         </div>
       </div>
 
-      <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="pending" className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Pendentes ({pendingPosts.length})
-          </TabsTrigger>
-          <TabsTrigger value="scheduled" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Agendados ({scheduledPosts.length})
-          </TabsTrigger>
-          <TabsTrigger value="published" className="flex items-center gap-2">
-            <Check className="w-4 h-4" />
-            Publicados ({publishedPosts.length})
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="pending" className="w-full" onValueChange={handleTabChange}>
+        <div className="flex justify-between items-center mb-4">
+          <TabsList className="grid grid-cols-3 w-auto">
+            <TabsTrigger value="pending" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Pendentes ({pendingPosts.length})
+            </TabsTrigger>
+            <TabsTrigger value="scheduled" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Agendados ({scheduledPosts.length})
+            </TabsTrigger>
+            <TabsTrigger value="published" className="flex items-center gap-2">
+              <Check className="w-4 h-4" />
+              Publicados ({publishedPosts.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Botão para excluir todos da aba atual */}
+          {getCurrentPosts().length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Excluir Todos {activeTab === 'pending' ? 'Pendentes' : activeTab === 'scheduled' ? 'Agendados' : 'Publicados'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir Todos os Posts {activeTab === 'pending' ? 'Pendentes' : activeTab === 'scheduled' ? 'Agendados' : 'Publicados'}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Todos os posts {activeTab === 'pending' ? 'pendentes' : activeTab === 'scheduled' ? 'agendados' : 'publicados'} serão excluídos permanentemente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAllByStatus}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Excluir Todos
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
 
         <TabsContent value="pending" className="space-y-4">
-          {pendingPosts.filter(post => !post.scheduled_for).length === 0 ? (
+          {getCurrentPosts().length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center text-muted-foreground">
@@ -206,76 +301,79 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
               </CardContent>
             </Card>
           ) : (
-            pendingPosts.filter(post => !post.scheduled_for).map((post) => (
-              <Card key={post.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(post.status, post.scheduled_for)}
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(post.created_at)}
-                      </span>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => onEditPost?.(post)}
-                          className="text-blue-600"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => approvePost(post.id)}
-                          className="text-green-600"
-                        >
-                          <Check className="w-4 h-4 mr-2" />
-                          Aprovar Agora
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedPost(post);
-                            setIsScheduleDialogOpen(true);
-                          }}
-                          className="text-orange-600"
-                        >
-                          <Calendar className="w-4 h-4 mr-2" />
-                          Agendar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => deletePost(post.id)}
-                          className="text-red-600"
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <p className="text-sm">{truncateContent(post.content)}</p>
-                    {post.image_url && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Image className="w-4 h-4" />
-                        Contém imagem
+            <>
+              {getCurrentPosts().map((post) => (
+                <Card key={post.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(post.status, post.scheduled_for)}
+                        <span className="text-sm text-muted-foreground">
+                          {formatDate(post.created_at)}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => onEditPost?.(post)}
+                            className="text-blue-600"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => approvePost(post.id)}
+                            className="text-green-600"
+                          >
+                            <Check className="w-4 h-4 mr-2" />
+                            Aprovar Agora
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedPost(post);
+                              setIsScheduleDialogOpen(true);
+                            }}
+                            className="text-orange-600"
+                          >
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Agendar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => deletePost(post.id)}
+                            className="text-red-600"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <p className="text-sm">{truncateContent(post.content)}</p>
+                      {post.image_url && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Image className="w-4 h-4" />
+                          Contém imagem
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {renderPagination()}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="scheduled" className="space-y-4">
-          {scheduledPosts.length === 0 ? (
+          {getCurrentPosts().length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center text-muted-foreground">
@@ -285,66 +383,69 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
               </CardContent>
             </Card>
           ) : (
-            scheduledPosts.map((post) => (
-              <Card key={post.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(post.status, post.scheduled_for)}
-                      <span className="text-sm text-muted-foreground">
-                        Agendado para: {post.scheduled_for ? formatDate(post.scheduled_for) : 'N/A'}
-                      </span>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => onEditPost?.(post)}
-                          className="text-blue-600"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => approvePost(post.id)}
-                          className="text-green-600"
-                        >
-                          <Check className="w-4 h-4 mr-2" />
-                          Publicar Agora
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => deletePost(post.id)}
-                          className="text-red-600"
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <p className="text-sm">{truncateContent(post.content)}</p>
-                    {post.image_url && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Image className="w-4 h-4" />
-                        Contém imagem
+            <>
+              {getCurrentPosts().map((post) => (
+                <Card key={post.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(post.status, post.scheduled_for)}
+                        <span className="text-sm text-muted-foreground">
+                          Agendado para: {post.scheduled_for ? formatDate(post.scheduled_for) : 'N/A'}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => onEditPost?.(post)}
+                            className="text-blue-600"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => approvePost(post.id)}
+                            className="text-green-600"
+                          >
+                            <Check className="w-4 h-4 mr-2" />
+                            Publicar Agora
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => deletePost(post.id)}
+                            className="text-red-600"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <p className="text-sm">{truncateContent(post.content)}</p>
+                      {post.image_url && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Image className="w-4 h-4" />
+                          Contém imagem
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {renderPagination()}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="published" className="space-y-4">
-          {publishedPosts.length === 0 ? (
+          {getCurrentPosts().length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center text-muted-foreground">
@@ -354,47 +455,50 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
               </CardContent>
             </Card>
           ) : (
-            publishedPosts.map((post) => (
-              <Card key={post.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(post.status)}
-                      <span className="text-sm text-muted-foreground">
-                        Publicado em: {post.published_at ? formatDate(post.published_at) : formatDate(post.created_at)}
-                      </span>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => deletePost(post.id)}
-                          className="text-red-600"
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <p className="text-sm">{truncateContent(post.content)}</p>
-                    {post.image_url && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Image className="w-4 h-4" />
-                        Contém imagem
+            <>
+              {getCurrentPosts().map((post) => (
+                <Card key={post.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(post.status)}
+                        <span className="text-sm text-muted-foreground">
+                          Publicado em: {post.published_at ? formatDate(post.published_at) : formatDate(post.created_at)}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => deletePost(post.id)}
+                            className="text-red-600"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <p className="text-sm">{truncateContent(post.content)}</p>
+                      {post.image_url && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Image className="w-4 h-4" />
+                          Contém imagem
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {renderPagination()}
+            </>
           )}
         </TabsContent>
       </Tabs>

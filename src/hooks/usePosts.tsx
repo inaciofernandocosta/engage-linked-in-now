@@ -158,6 +158,45 @@ export const usePosts = () => {
     }
   };
 
+  const deletePostsByStatus = async (status: string, scheduledOnly?: boolean) => {
+    try {
+      let query = supabase
+        .from('posts')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('status', status);
+
+      if (scheduledOnly) {
+        query = query.not('scheduled_for', 'is', null);
+      } else if (status === 'pending') {
+        query = query.is('scheduled_for', null);
+      }
+
+      const { error } = await query;
+
+      if (error) throw error;
+
+      const statusNames = {
+        'pending': scheduledOnly ? 'agendados' : 'pendentes',
+        'published': 'publicados'
+      };
+
+      toast({
+        title: "Posts Excluídos",
+        description: `Todos os posts ${statusNames[status as keyof typeof statusNames]} foram excluídos com sucesso`,
+      });
+
+      fetchPosts();
+    } catch (error) {
+      console.error(`Erro ao excluir posts ${status}:`, error);
+      toast({
+        title: "Erro",
+        description: `Não foi possível excluir os posts ${status}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
   }, [user]);
@@ -195,6 +234,7 @@ export const usePosts = () => {
     approvePost,
     schedulePost,
     deletePost,
-    deleteAllPosts
+    deleteAllPosts,
+    deletePostsByStatus
   };
 };
