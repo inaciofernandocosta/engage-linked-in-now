@@ -323,8 +323,12 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
                     className="flex items-center gap-2 shrink-0"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Excluir selecionados</span>
-                    <span className="sm:hidden">Excluir ({selectedPostIds.length})</span>
+                    {allCurrentSelected ? null : (
+                      <>
+                        <span className="hidden sm:inline">Excluir selecionados</span>
+                        <span className="sm:hidden">Excluir ({selectedPostIds.length})</span>
+                      </>
+                    )}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
