@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search } from 'lucide-react';
+import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { usePosts } from '@/hooks/usePosts';
 
 interface Post {
@@ -35,8 +36,9 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
   const [scheduleTime, setScheduleTime] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   
-  const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost } = usePosts();
+  const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost, deleteAllPosts } = usePosts();
 
   const handleSchedulePost = async (postId: string) => {
     if (!scheduleDate || !scheduleTime) {
@@ -111,8 +113,37 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Publicações</h1>
-        <p className="text-muted-foreground">Gerencie suas publicações pendentes, agendadas e publicadas</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Publicações</h1>
+            <p className="text-muted-foreground">Gerencie suas publicações pendentes, agendadas e publicadas</p>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+                Excluir Todos
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir Todos os Posts</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Todos os seus posts (pendentes, agendados e publicados) serão excluídos permanentemente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={deleteAllPosts}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Excluir Todos
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
         
         {/* Filtros de busca */}
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
@@ -333,6 +364,22 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
                         Publicado em: {post.published_at ? formatDate(post.published_at) : formatDate(post.created_at)}
                       </span>
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => deletePost(post.id)}
+                          className="text-red-600"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardHeader>
                 <CardContent>

@@ -133,6 +133,31 @@ export const usePosts = () => {
     }
   };
 
+  const deleteAllPosts = async () => {
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Todos os Posts Excluídos",
+        description: "Todos os posts foram excluídos com sucesso",
+      });
+
+      fetchPosts();
+    } catch (error) {
+      console.error('Erro ao excluir todos os posts:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir todos os posts",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
   }, [user]);
@@ -169,6 +194,7 @@ export const usePosts = () => {
     fetchPosts,
     approvePost,
     schedulePost,
-    deletePost
+    deletePost,
+    deleteAllPosts
   };
 };
