@@ -78,6 +78,33 @@ const getImageAsBase64 = async (imagePath: string): Promise<{content: string, co
   }
 };
 
+// Função auxiliar para enviar webhook
+const sendWebhook = async (webhook_url: string, payload: any, execution_id: string) => {
+  console.log(`[${execution_id}] === CHAMANDO WEBHOOK ===`);
+  console.log(`[${execution_id}] URL:`, webhook_url);
+  console.log(`[${execution_id}] Payload:`, JSON.stringify(payload, null, 2));
+
+  const webhookResponse = await fetch(webhook_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  console.log(`[${execution_id}] Webhook response status:`, webhookResponse.status);
+  
+  const responseText = await webhookResponse.text();
+  console.log(`[${execution_id}] Webhook response text:`, responseText);
+
+  if (!webhookResponse.ok) {
+    throw new Error(`Webhook call failed: ${webhookResponse.status} ${webhookResponse.statusText}`);
+  }
+
+  console.log(`[${execution_id}] ✅ Webhook chamado com sucesso!`);
+  return webhookResponse;
+};
+
 serve(async (req) => {
   console.log('=== WEBHOOK TRIGGER INICIADO ===');
   console.log('Method:', req.method);
@@ -113,6 +140,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Buscar o post com o array de imagens
+    console.log(`[${execution_id}] 🔍 Buscando post no banco: ${post_id}`);
     const { data: postData, error: postError } = await supabase
       .from('posts')
       .select('images')
@@ -121,7 +149,26 @@ serve(async (req) => {
 
     if (postError) {
       console.error(`[${execution_id}] Erro ao buscar post:`, postError);
-      throw new Error(`Failed to fetch post: ${postError.message}`);
+      // Se não conseguir buscar o post, usar imagem singular como fallback
+      const webhookPayload = {
+        post_id,
+        content,
+        image_url,
+        images: [], // array vazio
+        published_at,
+        user_id
+      };
+      
+      console.log(`[${execution_id}] ⚠️ Usando fallback sem múltiplas imagens`);
+      await sendWebhook(webhook_url, webhookPayload, execution_id);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Webhook enviado com fallback (sem múltiplas imagens)' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Processar múltiplas imagens
@@ -160,36 +207,14 @@ serve(async (req) => {
     };
 
     console.log(`[${execution_id}] ✅ Processadas ${imagesData.length} imagens de ${imagesArray.length} disponíveis`);
-
-    console.log(`[${execution_id}] === CHAMANDO WEBHOOK ===`);
-    console.log(`[${execution_id}] URL:`, webhook_url);
-    console.log(`[${execution_id}] Payload:`, JSON.stringify(webhookPayload, null, 2));
-
-    // Chamar o webhook
-    const webhookResponse = await fetch(webhook_url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(webhookPayload),
-    });
-
-    console.log(`[${execution_id}] Webhook response status:`, webhookResponse.status);
     
-    const responseText = await webhookResponse.text();
-    console.log(`[${execution_id}] Webhook response text:`, responseText);
-
-    if (!webhookResponse.ok) {
-      throw new Error(`Webhook call failed: ${webhookResponse.status} ${webhookResponse.statusText}`);
-    }
-
-    console.log(`[${execution_id}] ✅ Webhook chamado com sucesso!`);
+    // Chamar o webhook usando a função auxiliar
+    await sendWebhook(webhook_url, webhookPayload, execution_id);
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        webhook_status: webhookResponse.status,
-        message: 'Webhook chamado com sucesso' 
+        message: 'Webhook chamado com múltiplas imagens' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
