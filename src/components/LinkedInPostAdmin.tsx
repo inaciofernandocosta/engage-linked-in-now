@@ -310,6 +310,10 @@ const LinkedInPostAdmin = () => {
           status: 'pending'
         });
         
+        // Limpar o editor e preview após salvamento bem-sucedido
+        setPostContent('');
+        setImages([]);
+        
         // Redirecionar para Publications em vez de mostrar tela de aprovação
         setCurrentStep('create');
         setCurrentTab('publications');
