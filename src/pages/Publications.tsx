@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, Clock, Check, X, MoreVertical, Image, FileText, Edit, Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +39,7 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
   const [dateFilter, setDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState('pending');
+  const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
   const postsPerPage = 10;
   
   const { posts, loading, approvePost, schedulePost: schedulePostHook, deletePost, deletePostsByStatus } = usePosts();
@@ -140,7 +142,37 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
     setCurrentPage(1); // Reset to first page when switching tabs
+    setSelectedPostIds([]); // Clear selection when switching tabs
   };
+
+  // Functions for multi-selection
+  const handleSelectPost = (postId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedPostIds(prev => [...prev, postId]);
+    } else {
+      setSelectedPostIds(prev => prev.filter(id => id !== postId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const currentPostIds = getCurrentPosts().map(post => post.id);
+      setSelectedPostIds(currentPostIds);
+    } else {
+      setSelectedPostIds([]);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    for (const postId of selectedPostIds) {
+      await deletePost(postId);
+    }
+    setSelectedPostIds([]);
+  };
+
+  const currentPostIds = getCurrentPosts().map(post => post.id);
+  const allCurrentSelected = currentPostIds.length > 0 && currentPostIds.every(id => selectedPostIds.includes(id));
+  const someCurrentSelected = currentPostIds.some(id => selectedPostIds.includes(id));
 
   const handleDeleteAllByStatus = async () => {
     switch (activeTab) {
@@ -290,6 +322,55 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
           )}
         </div>
 
+        {/* Barra de seleção múltipla */}
+        {getCurrentPosts().length > 0 && (
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg mb-4">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={allCurrentSelected}
+                onCheckedChange={handleSelectAll}
+                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+              <span className="text-sm font-medium">
+                {allCurrentSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+              </span>
+              {selectedPostIds.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  ({selectedPostIds.length} selecionado{selectedPostIds.length !== 1 ? 's' : ''})
+                </span>
+              )}
+            </div>
+            
+            {selectedPostIds.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir selecionados
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Posts Selecionados</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. {selectedPostIds.length} post{selectedPostIds.length !== 1 ? 's' : ''} selecionado{selectedPostIds.length !== 1 ? 's' : ''} será{selectedPostIds.length !== 1 ? 'ão' : ''} excluído{selectedPostIds.length !== 1 ? 's' : ''} permanentemente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteSelected}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Excluir {selectedPostIds.length} post{selectedPostIds.length !== 1 ? 's' : ''}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        )}
+
         <TabsContent value="pending" className="space-y-4">
           {getCurrentPosts().length === 0 ? (
             <Card>
@@ -306,11 +387,18 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
                 <Card key={post.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(post.status, post.scheduled_for)}
-                        <span className="text-sm text-muted-foreground">
-                          {formatDate(post.created_at)}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedPostIds.includes(post.id)}
+                          onCheckedChange={(checked) => handleSelectPost(post.id, checked as boolean)}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(post.status, post.scheduled_for)}
+                          <span className="text-sm text-muted-foreground">
+                            {formatDate(post.created_at)}
+                          </span>
+                        </div>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -388,11 +476,18 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
                 <Card key={post.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(post.status, post.scheduled_for)}
-                        <span className="text-sm text-muted-foreground">
-                          Agendado para: {post.scheduled_for ? formatDate(post.scheduled_for) : 'N/A'}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedPostIds.includes(post.id)}
+                          onCheckedChange={(checked) => handleSelectPost(post.id, checked as boolean)}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(post.status, post.scheduled_for)}
+                          <span className="text-sm text-muted-foreground">
+                            Agendado para: {post.scheduled_for ? formatDate(post.scheduled_for) : 'N/A'}
+                          </span>
+                        </div>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -460,11 +555,18 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
                 <Card key={post.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(post.status)}
-                        <span className="text-sm text-muted-foreground">
-                          Publicado em: {post.published_at ? formatDate(post.published_at) : formatDate(post.created_at)}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedPostIds.includes(post.id)}
+                          onCheckedChange={(checked) => handleSelectPost(post.id, checked as boolean)}
+                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(post.status)}
+                          <span className="text-sm text-muted-foreground">
+                            Publicado em: {post.published_at ? formatDate(post.published_at) : formatDate(post.created_at)}
+                          </span>
+                        </div>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
