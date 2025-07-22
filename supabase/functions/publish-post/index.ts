@@ -247,50 +247,66 @@ serve(async (req) => {
     if (images && Array.isArray(images) && images.length > 0) {
       console.log('Processando múltiplas imagens:', images.length);
       
-      for (const [index, imageData] of images.entries()) {
-        console.log(`Processando imagem ${index + 1}/${images.length}`);
-        
-        let processedImageUrl: string | null = null;
-        let processedImagePath: string | null = null;
-        
-        // Se é uma URL externa, converter para base64
-        if (imageData.isExternal && imageData.url.startsWith('http')) {
-          console.log('Convertendo URL externa para base64...');
-          const convertedBase64 = await convertUrlToBase64(imageData.url);
+      try {
+        for (const [index, imageData] of images.entries()) {
+          console.log(`Processando imagem ${index + 1}/${images.length}`);
           
-          if (convertedBase64) {
-            // Upload da imagem convertida
-            const uploadResult = await uploadImageToStorage(convertedBase64, imageData.name, user.id, supabaseAdmin);
-            if (uploadResult.success) {
-              processedImageUrl = uploadResult.url;
-              processedImagePath = uploadResult.path;
+          let processedImageUrl: string | null = null;
+          let processedImagePath: string | null = null;
+          
+          try {
+            // Se é uma URL externa, converter para base64
+            if (imageData.isExternal && imageData.url.startsWith('http')) {
+              console.log('Convertendo URL externa para base64...');
+              const convertedBase64 = await convertUrlToBase64(imageData.url);
+              
+              if (convertedBase64) {
+                // Upload da imagem convertida
+                const uploadResult = await uploadImageToStorage(convertedBase64, imageData.name, user.id, supabaseAdmin);
+                if (uploadResult.success) {
+                  processedImageUrl = uploadResult.url;
+                  processedImagePath = uploadResult.path;
+                }
+              }
+            } 
+            // Se é base64, fazer upload direto
+            else if (imageData.isBase64 && imageData.url.startsWith('data:')) {
+              console.log('Fazendo upload de imagem base64...');
+              const uploadResult = await uploadImageToStorage(imageData.url, imageData.name, user.id, supabaseAdmin);
+              if (uploadResult.success) {
+                processedImageUrl = uploadResult.url;
+                processedImagePath = uploadResult.path;
+              }
             }
-          }
-        } 
-        // Se é base64, fazer upload direto
-        else if (imageData.isBase64 && imageData.url.startsWith('data:')) {
-          console.log('Fazendo upload de imagem base64...');
-          const uploadResult = await uploadImageToStorage(imageData.url, imageData.name, user.id, supabaseAdmin);
-          if (uploadResult.success) {
-            processedImageUrl = uploadResult.url;
-            processedImagePath = uploadResult.path;
+            
+            // Adicionar imagem processada ao array
+            if (processedImageUrl) {
+              processedImages.push({
+                url: processedImageUrl,
+                name: imageData.name,
+                storage_path: processedImagePath
+              });
+              
+              // Manter compatibilidade - usar primeira imagem como principal
+              if (index === 0) {
+                finalImageUrl = processedImageUrl;
+                imagePath = processedImagePath;
+              }
+              
+              console.log(`✅ Imagem ${index + 1} processada com sucesso: ${processedImageUrl.substring(0, 50)}...`);
+            } else {
+              console.warn(`⚠️ Falha ao processar imagem ${index + 1}: ${imageData.name}`);
+            }
+          } catch (imageError) {
+            console.error(`❌ Erro ao processar imagem ${index + 1}:`, imageError);
+            // Continuar processando as outras imagens
           }
         }
         
-        // Adicionar imagem processada ao array
-        if (processedImageUrl) {
-          processedImages.push({
-            url: processedImageUrl,
-            name: imageData.name,
-            storage_path: processedImagePath
-          });
-          
-          // Manter compatibilidade - usar primeira imagem como principal
-          if (index === 0) {
-            finalImageUrl = processedImageUrl;
-            imagePath = processedImagePath;
-          }
-        }
+        console.log(`Total de imagens processadas: ${processedImages.length}`);
+      } catch (batchError) {
+        console.error('❌ Erro no processamento em lote de imagens:', batchError);
+        // Continuar com o post mesmo se houver problema com as imagens
       }
     }
     // Fallback para formato legado (compatibilidade)
