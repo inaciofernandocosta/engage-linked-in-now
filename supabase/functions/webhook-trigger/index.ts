@@ -203,14 +203,25 @@ serve(async (req) => {
 
     if (postError) {
       console.error(`[${execution_id}] Erro ao buscar post:`, postError);
-      // Se não conseguir buscar o post, usar imagem singular como fallback
+      // Se não conseguir buscar o post, usar formato correto como fallback
+      const fallbackImages = image_url ? [{
+        id: "image_1",
+        url: image_url,
+        name: "image.jpg",
+        index: 0
+      }] : [];
+      
       const webhookPayload = {
-        post_id,
         content,
-        image_url,
-        images: [], // array vazio
-        published_at,
-        user_id
+        images: fallbackImages,
+        images_count: fallbackImages.length,
+        has_images: fallbackImages.length > 0,
+        first_image: fallbackImages.length > 0 ? fallbackImages[0].url : null,
+        timestamp: published_at || new Date().toISOString(),
+        // Manter campos originais para compatibilidade
+        post_id,
+        user_id,
+        published_at
       };
       
       console.log(`[${execution_id}] ⚠️ Usando fallback sem múltiplas imagens`);
@@ -250,14 +261,25 @@ serve(async (req) => {
       }
     }
 
-    // Construir payload para o webhook com múltiplas imagens
+    // Construir payload no formato que o n8n espera
+    const formattedImages = imagesArray.map((imageInfo, index) => ({
+      id: `image_${index + 1}`,
+      url: imageInfo.url || image_url, // usar URL pública da imagem
+      name: imageInfo.name || `image_${index + 1}.jpg`,
+      index: index
+    }));
+
     const webhookPayload = {
-      post_id,
       content,
-      image_url, // manter para compatibilidade (primeira imagem)
-      images: imagesData, // array com todas as imagens em base64
-      published_at,
-      user_id
+      images: formattedImages,
+      images_count: formattedImages.length,
+      has_images: formattedImages.length > 0,
+      first_image: formattedImages.length > 0 ? formattedImages[0].url : null,
+      timestamp: published_at || new Date().toISOString(),
+      // Manter campos originais para compatibilidade
+      post_id,
+      user_id,
+      published_at
     };
 
     console.log(`[${execution_id}] ✅ Processadas ${imagesData.length} imagens de ${imagesArray.length} disponíveis`);
