@@ -291,62 +291,40 @@ const Publications = ({ onEditPost }: PublicationsProps = {}) => {
               Publicados ({publishedPosts.length})
             </TabsTrigger>
           </TabsList>
-          
-          {/* Botão discreto para excluir todos da aba atual */}
-          {getCurrentPosts().length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive flex items-center gap-1">
-                  <Trash2 className="w-3 h-3" />
-                  <span className="text-xs">Limpar {activeTab === 'pending' ? 'pendentes' : activeTab === 'scheduled' ? 'agendados' : 'publicados'}</span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Excluir Todos os Posts {activeTab === 'pending' ? 'Pendentes' : activeTab === 'scheduled' ? 'Agendados' : 'Publicados'}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Todos os posts {activeTab === 'pending' ? 'pendentes' : activeTab === 'scheduled' ? 'agendados' : 'publicados'} serão excluídos permanentemente.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteAllByStatus}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Excluir Todos
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
         </div>
 
         {/* Barra de seleção múltipla */}
         {getCurrentPosts().length > 0 && (
-          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg mb-4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-muted/20 border border-border/50 rounded-lg mb-4">
+            <div className="flex items-center gap-3 flex-1">
               <Checkbox
                 checked={allCurrentSelected}
                 onCheckedChange={handleSelectAll}
                 className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
-              <span className="text-sm font-medium">
-                {allCurrentSelected ? 'Desmarcar todos' : 'Selecionar todos'}
-              </span>
-              {selectedPostIds.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  ({selectedPostIds.length} selecionado{selectedPostIds.length !== 1 ? 's' : ''})
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {allCurrentSelected ? 'Desmarcar todos' : 'Selecionar todos'}
                 </span>
-              )}
+                {selectedPostIds.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {selectedPostIds.length} selecionado{selectedPostIds.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
             </div>
             
             {selectedPostIds.length > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Excluir selecionados
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="flex items-center gap-2 shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Excluir selecionados</span>
+                    <span className="sm:hidden">Excluir ({selectedPostIds.length})</span>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
