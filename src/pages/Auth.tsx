@@ -17,11 +17,32 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Clear any problematic URL parameters that might cause token errors
+    const url = new URL(window.location.href);
+    const hasAuthParams = url.searchParams.has('access_token') || 
+                         url.searchParams.has('refresh_token') || 
+                         url.searchParams.has('token_hash') ||
+                         url.hash.includes('access_token');
+    
+    if (hasAuthParams) {
+      // Clean URL by removing hash and search params
+      const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+
     // Check if user is already logged in
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Auth error:', error);
+          // Clear any stored session data if there's an error
+          await supabase.auth.signOut();
+        } else if (session) {
+          navigate('/');
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
       }
     };
     checkAuth();
@@ -29,8 +50,14 @@ const Auth = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (session) {
+        if (event === 'SIGNED_IN' && session) {
           navigate('/');
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Handle token refresh
+          console.log('Token refreshed successfully');
+        } else if (event === 'SIGNED_OUT') {
+          // Clear any problematic state
+          console.log('User signed out');
         }
       }
     );
@@ -76,6 +103,10 @@ const Auth = () => {
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast.error('Email ou senha incorretos.');
+          } else if (error.message.includes('Invalid token') || error.message.includes('signature is invalid')) {
+            toast.error('Erro de autenticação. Tente novamente.');
+            // Clear any problematic session data
+            await supabase.auth.signOut();
           } else {
             toast.error(error.message);
           }
