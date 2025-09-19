@@ -10,9 +10,6 @@ import { toast } from 'sonner';
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -71,46 +68,38 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const redirectUrl = `${window.location.origin}/`;
-        
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: redirectUrl,
-            data: {
-              first_name: firstName,
-              last_name: lastName,
-            }
-          }
-        });
+      // Primeiro verificar se o email existe na tabela profiles
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
 
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('Este email já está cadastrado. Tente fazer login.');
-          } else {
-            toast.error(error.message);
-          }
+      if (profileError) {
+        toast.error('Erro ao verificar acesso. Tente novamente.');
+        return;
+      }
+
+      if (!profile) {
+        toast.error('Sistema restrito. Acesso não autorizado para este email.');
+        return;
+      }
+
+      // Se o email existe na tabela profiles, proceder com o login
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email ou senha incorretos.');
+        } else if (error.message.includes('Invalid token') || error.message.includes('signature is invalid')) {
+          toast.error('Erro de autenticação. Tente novamente.');
+          // Clear any problematic session data
+          await supabase.auth.signOut();
         } else {
-          toast.success('Conta criada! Verifique seu email para confirmar.');
-        }
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Email ou senha incorretos.');
-          } else if (error.message.includes('Invalid token') || error.message.includes('signature is invalid')) {
-            toast.error('Erro de autenticação. Tente novamente.');
-            // Clear any problematic session data
-            await supabase.auth.signOut();
-          } else {
-            toast.error(error.message);
-          }
+          toast.error(error.message);
         }
       }
     } catch (error) {
@@ -121,9 +110,32 @@ const Auth = () => {
   };
 
   const handleGoogleLogin = async () => {
+    if (!email) {
+      toast.error('Por favor, insira seu email primeiro para verificar o acesso.');
+      return;
+    }
+
     setLoading(true);
     
     try {
+      // Verificar se o email existe na tabela profiles antes do login Google
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+
+      if (profileError) {
+        toast.error('Erro ao verificar acesso. Tente novamente.');
+        return;
+      }
+
+      if (!profile) {
+        toast.error('Sistema restrito. Acesso não autorizado para este email.');
+        return;
+      }
+
+      // Se o email existe na tabela profiles, proceder com o login Google
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -200,82 +212,30 @@ const Auth = () => {
         {/* Title */}
         <div className="mb-6">
           <h1 className="text-3xl font-normal text-foreground mb-2">
-            {isForgotPassword ? 'Recuperar senha' : isSignUp ? 'Cadastre-se' : 'Entrar'}
+            {isForgotPassword ? 'Recuperar senha' : 'Entrar'}
           </h1>
-          {!isSignUp && !isForgotPassword && (
-            <p className="text-sm text-muted-foreground">
-              ou{' '}
-              <button
-                type="button"
-                onClick={() => setIsSignUp(true)}
-                className="text-blue-600 hover:underline font-medium"
-              >
-                Cadastre-se no LinkedIn
-              </button>
-            </p>
-          )}
-          {isSignUp && (
-            <p className="text-sm text-muted-foreground">
-              ou{' '}
-              <button
-                type="button"
-                onClick={() => setIsSignUp(false)}
-                className="text-blue-600 hover:underline font-medium"
-              >
-                Entrar na sua conta
-              </button>
-            </p>
-          )}
           {isForgotPassword && (
             <p className="text-sm text-muted-foreground">
               Insira seu email para receber o link de recuperação de senha
+            </p>
+          )}
+          {!isForgotPassword && (
+            <p className="text-sm text-muted-foreground">
+              Sistema restrito - Acesso apenas para usuários autorizados
             </p>
           )}
         </div>
 
         {/* Form */}
         <form onSubmit={isForgotPassword ? handleForgotPassword : handleEmailLogin} className="space-y-4 mb-6">
-          {isSignUp && !isForgotPassword && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName" className="sr-only">
-                  Nome
-                </Label>
-                <Input
-                  id="firstName"
-                  type="text"
-                  placeholder="Nome"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required={isSignUp}
-                  className="h-12 border-gray-300 rounded-md"
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName" className="sr-only">
-                  Sobrenome
-                </Label>
-                <Input
-                  id="lastName"
-                  type="text"
-                  placeholder="Sobrenome"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required={isSignUp}
-                  className="h-12 border-gray-300 rounded-md"
-                />
-              </div>
-            </div>
-          )}
-
           <div>
             <Label htmlFor="email" className="sr-only">
-              E-mail ou telefone
+              E-mail
             </Label>
             <Input
               id="email"
               type="email"
-              placeholder="E-mail ou telefone"
+              placeholder="E-mail"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -300,7 +260,7 @@ const Auth = () => {
             </div>
           )}
 
-          {!isSignUp && !isForgotPassword && (
+          {!isForgotPassword && (
             <div className="text-left">
               <button
                 type="button"
@@ -330,8 +290,7 @@ const Auth = () => {
             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full"
           >
             {loading ? 'Carregando...' : 
-             isForgotPassword ? 'Enviar email de recuperação' :
-             isSignUp ? 'Cadastrar' : 'Entrar'}
+             isForgotPassword ? 'Enviar email de recuperação' : 'Entrar'}
           </Button>
         </form>
 
@@ -352,7 +311,7 @@ const Auth = () => {
               type="button"
               variant="outline"
               onClick={handleGoogleLogin}
-              disabled={loading}
+              disabled={loading || !email}
               className="w-full h-12 border-gray-600 text-gray-700 hover:bg-gray-50 font-medium rounded-full flex items-center justify-center space-x-2"
             >
               <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
@@ -360,23 +319,14 @@ const Auth = () => {
               </div>
               <span>Entrar com o Google</span>
             </Button>
+            {!email && (
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                Insira seu email primeiro para verificar o acesso
+              </p>
+            )}
           </>
         )}
 
-        {/* Footer text */}
-        {isSignUp && (
-          <p className="text-xs text-center text-muted-foreground mt-4">
-            Ao clicar em Aceitar e entrar ou Continuar, você concorda com os{' '}
-            <a href="#" className="text-blue-600 hover:underline">
-              Termos de Uso
-            </a>{' '}
-            e{' '}
-            <a href="#" className="text-blue-600 hover:underline">
-              Política de Privacidade
-            </a>{' '}
-            do LinkedIn.
-          </p>
-        )}
       </div>
     </div>
   );
