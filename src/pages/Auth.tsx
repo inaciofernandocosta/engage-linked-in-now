@@ -13,6 +13,7 @@ const Auth = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -147,6 +148,34 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error('Por favor, insira seu email.');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/change-password`,
+      });
+
+      if (error) {
+        toast.error('Erro ao enviar email de recuperação. Tente novamente.');
+      } else {
+        toast.success('Email de recuperação enviado! Verifique sua caixa de entrada.');
+        setIsForgotPassword(false);
+      }
+    } catch (err) {
+      console.error('Erro ao recuperar senha:', err);
+      toast.error('Erro inesperado. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -171,9 +200,9 @@ const Auth = () => {
         {/* Title */}
         <div className="mb-6">
           <h1 className="text-3xl font-normal text-foreground mb-2">
-            {isSignUp ? 'Cadastre-se' : 'Entrar'}
+            {isForgotPassword ? 'Recuperar senha' : isSignUp ? 'Cadastre-se' : 'Entrar'}
           </h1>
-          {!isSignUp && (
+          {!isSignUp && !isForgotPassword && (
             <p className="text-sm text-muted-foreground">
               ou{' '}
               <button
@@ -197,11 +226,16 @@ const Auth = () => {
               </button>
             </p>
           )}
+          {isForgotPassword && (
+            <p className="text-sm text-muted-foreground">
+              Insira seu email para receber o link de recuperação de senha
+            </p>
+          )}
         </div>
 
         {/* Form */}
-        <form onSubmit={handleEmailLogin} className="space-y-4 mb-6">
-          {isSignUp && (
+        <form onSubmit={isForgotPassword ? handleForgotPassword : handleEmailLogin} className="space-y-4 mb-6">
+          {isSignUp && !isForgotPassword && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName" className="sr-only">
@@ -249,28 +283,43 @@ const Auth = () => {
             />
           </div>
 
-          <div>
-            <Label htmlFor="password" className="sr-only">
-              Senha
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-12 border-gray-300 rounded-md"
-            />
-          </div>
+          {!isForgotPassword && (
+            <div>
+              <Label htmlFor="password" className="sr-only">
+                Senha
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="h-12 border-gray-300 rounded-md"
+              />
+            </div>
+          )}
 
-          {!isSignUp && (
+          {!isSignUp && !isForgotPassword && (
             <div className="text-left">
               <button
                 type="button"
+                onClick={() => setIsForgotPassword(true)}
                 className="text-blue-600 hover:underline text-sm font-medium"
               >
                 Esqueceu a senha?
+              </button>
+            </div>
+          )}
+
+          {isForgotPassword && (
+            <div className="text-left">
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(false)}
+                className="text-blue-600 hover:underline text-sm font-medium"
+              >
+                Voltar ao login
               </button>
             </div>
           )}
@@ -280,33 +329,39 @@ const Auth = () => {
             disabled={loading}
             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full"
           >
-            {loading ? 'Carregando...' : isSignUp ? 'Cadastrar' : 'Entrar'}
+            {loading ? 'Carregando...' : 
+             isForgotPassword ? 'Enviar email de recuperação' :
+             isSignUp ? 'Cadastrar' : 'Entrar'}
           </Button>
         </form>
 
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-background text-muted-foreground">ou</span>
-          </div>
-        </div>
+        {!isForgotPassword && (
+          <>
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-background text-muted-foreground">ou</span>
+              </div>
+            </div>
 
-        {/* Google Login */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full h-12 border-gray-600 text-gray-700 hover:bg-gray-50 font-medium rounded-full flex items-center justify-center space-x-2"
-        >
-          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
-            <span className="text-xs font-bold text-blue-600">G</span>
-          </div>
-          <span>Entrar com o Google</span>
-        </Button>
+            {/* Google Login */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full h-12 border-gray-600 text-gray-700 hover:bg-gray-50 font-medium rounded-full flex items-center justify-center space-x-2"
+            >
+              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                <span className="text-xs font-bold text-blue-600">G</span>
+              </div>
+              <span>Entrar com o Google</span>
+            </Button>
+          </>
+        )}
 
         {/* Footer text */}
         {isSignUp && (
